@@ -1,5 +1,9 @@
 <?php
+
 // backend/lib/ApiResponse.php
+
+namespace Lib;
+
 class ApiResponse {
     /**
      * Successful response (status 200)

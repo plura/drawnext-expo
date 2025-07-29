@@ -1,35 +1,42 @@
 <?php
 // backend/lib/Auth.php
 
+namespace Lib;
+
 class Auth {
-	public static function init() {
-		if (session_status() === PHP_SESSION_NONE) {
-			session_start();
-		}
-	}
+	
+    // Auth mode constants
+    const METHOD_EMAIL_ONLY = 'email_only';
+    const METHOD_EMAIL_PASSWORD = 'email_password';
+    const METHOD_MAGIC_LINK = 'magic_link';
 
-	// Unified login method (adapts to EMAIL_ONLY or PASSWORD mode)
-	public static function login(string $email, ?string $password = null): bool {
-		self::init();
+    public static function init(): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
 
-		$authMode = Config::get('auth_mode', 'EMAIL_ONLY');
+    public static function login(string $email, ?string $password = null): bool {
+        self::init();
+        $authMode = Config::get('auth_method');
 
-		if ($authMode === 'EMAIL_ONLY') {
-			// Email-only mode: Trust the email immediately
-			$_SESSION['user_email'] = $email;
-			return true;
-		} elseif ($authMode === 'PASSWORD') {
-			// Password mode
-			if ($password && self::validatePassword($email, $password)) {
-				$_SESSION['user_email'] = $email;
-				return true;
-			}
-			return false;
-		}
+        switch ($authMode) {
+            case self::METHOD_EMAIL_ONLY:
+                $_SESSION['user_email'] = $email;
+                return true;
 
-		// Unknown mode fallback
-		return false;
-	}
+            case self::METHOD_EMAIL_PASSWORD:
+                if ($password && self::validatePassword($email, $password)) {
+                    $_SESSION['user_email'] = $email;
+                    return true;
+                }
+                return false;
+
+            default:
+                error_log("Unknown auth mode: $authMode");
+                return false;
+        }
+    }
 
 	public static function getEmail(): ?string {
 		self::init();

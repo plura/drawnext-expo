@@ -2,7 +2,13 @@
 
 // backend/lib/Validation.php
 
-class Validation {
+namespace Lib;
+
+use InvalidArgumentException;
+
+
+class Validation
+{
 
 	/**
 	 * Validate email format and check existence in database
@@ -11,7 +17,8 @@ class Validation {
 	 * @return int Validated user ID
 	 * @throws InvalidArgumentException On validation failure
 	 */
-	public static function email(string $email, Database $db): int {
+	public static function email(string $email, Database $db): int
+	{
 		if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 			throw new InvalidArgumentException("Invalid email format");
 		}
@@ -26,41 +33,49 @@ class Validation {
 	}
 
 	/**
-	 * Validate notebook ID exists and return notebook data
-	 * @param int $notebook_id Notebook ID
-	 * @param Database $db Database instance
-	 * @return array Notebook data
-	 * @throws InvalidArgumentException
+	 * Validates that a notebook exists and returns its ID
+	 * @param int $notebook_id The notebook ID to validate
+	 * @param Database $db Database connection
+	 * @return int Valid notebook ID
+	 * @throws InvalidArgumentException If notebook doesn't exist
 	 */
-	public static function notebook(int $notebook_id, Database $db): array {
-		$notebook = $db->querySingle("SELECT * FROM notebooks WHERE notebook_id = ?", [$notebook_id]);
+	public static function notebook(int $notebook_id, Database $db): int
+	{
+		$id = $db->querySingle(
+			"SELECT notebook_id FROM notebooks WHERE notebook_id = ?",
+			[$notebook_id]
+		)['notebook_id'] ?? 0;
 
-		if (!$notebook) {
-			throw new InvalidArgumentException("Invalid notebook ID");
+		if (!$id) {
+			throw new InvalidArgumentException("Invalid notebook ID: " . $notebook_id);
 		}
 
-		return $notebook;
+		return (int)$id;
 	}
 
 	/**
-	 * Validate section ID exists and belongs to notebook, return section data
-	 * @param int $section_id Section ID
-	 * @param int $notebook_id Notebook ID
-	 * @param Database $db Database instance
-	 * @return array Section data
-	 * @throws InvalidArgumentException
+	 * Validates that a section exists in the specified notebook and returns its ID
+	 * @param int $section_id The section ID to validate
+	 * @param int $notebook_id The parent notebook ID
+	 * @param Database $db Database connection
+	 * @return int Valid section ID
+	 * @throws InvalidArgumentException If section doesn't exist or doesn't belong to notebook
 	 */
-	public static function section(int $section_id, int $notebook_id, Database $db): array {
-		$section = $db->querySingle(
-			"SELECT * FROM sections WHERE section_id = ? AND notebook_id = ?",
+	public static function section(int $section_id, int $notebook_id, Database $db): int
+	{
+		$id = $db->querySingle(
+			"SELECT section_id FROM sections 
+         WHERE section_id = ? AND notebook_id = ?",
 			[$section_id, $notebook_id]
-		);
+		)['section_id'] ?? 0;
 
-		if (!$section) {
-			throw new InvalidArgumentException("Invalid section for the selected notebook");
+		if (!$id) {
+			throw new InvalidArgumentException(
+				"Section $section_id not found in notebook $notebook_id"
+			);
 		}
 
-		return $section;
+		return (int)$id;
 	}
 
 	/**
@@ -71,7 +86,8 @@ class Validation {
 	 * @return int Validated page number
 	 * @throws InvalidArgumentException
 	 */
-	public static function page(int $page, int $notebook_id, Database $db): int {
+	public static function page(int $page, int $notebook_id, Database $db): int
+	{
 		if ($page <= 0) {
 			throw new InvalidArgumentException("Page number must be greater than zero");
 		}

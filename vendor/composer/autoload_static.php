@@ -23,6 +23,10 @@ class ComposerStaticInite875ae8441d070d7dda5f4b47a2117aa
         array (
             'PhpOption\\' => 10,
         ),
+        'L' => 
+        array (
+            'Lib\\' => 4,
+        ),
         'G' => 
         array (
             'GrahamCampbell\\ResultType\\' => 26,
@@ -49,6 +53,10 @@ class ComposerStaticInite875ae8441d070d7dda5f4b47a2117aa
         'PhpOption\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
+        ),
+        'Lib\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/backend/lib',
         ),
         'GrahamCampbell\\ResultType\\' => 
         array (
