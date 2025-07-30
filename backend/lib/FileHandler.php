@@ -8,78 +8,75 @@ use RuntimeException;
 
 class FileHandler 
 {
-    public static function processUpload(array $uploadedFile, int $drawingId): array 
-{
-    try {
-        $isTest = Env::get('TEST_MODE', false);
+    public static function processUpload(array $uploadedFile, int $drawingId, bool $isTest = false): array 
+    {
+        $targetPath = null; // Initialize for error handling
         
-        // Validate early
-        self::validateUpload($uploadedFile);
-        
-        // Prepare paths and generate secure filename
-        $extension = strtolower(pathinfo($uploadedFile['name'], PATHINFO_EXTENSION));
-        $secureFilename = bin2hex(random_bytes(16)) . ($extension ? ".$extension" : '');
-        $targetPath = self::generateTargetPath($secureFilename);
-        
-        $context = [
-            'source' => $uploadedFile['tmp_name'],
-            'target' => $targetPath,
-            'is_test' => $isTest
-        ];
-
-        // Handle file transfer
-        if ($isTest) {
-            if (!copy($uploadedFile['tmp_name'], $targetPath)) {
-                throw new FileHandlerException(
-                    "Failed to copy test file",
-                    $context + ['last_error' => error_get_last()]
-                );
+        try {
+            // Validate file structure and content
+            self::validateUpload($uploadedFile);
+            
+            // Generate secure filename and target path
+            $extension = strtolower(pathinfo($uploadedFile['name'], PATHINFO_EXTENSION));
+            $secureFilename = bin2hex(random_bytes(16)) . ($extension ? ".$extension" : '');
+            $targetPath = self::generateTargetPath($secureFilename);
+            
+            // Handle file transfer based on test mode
+            if ($isTest) {
+                if (!copy($uploadedFile['tmp_name'], $targetPath)) {
+                    throw new FileHandlerException(
+                        "Failed to copy test file",
+                        [
+                            'source' => $uploadedFile['tmp_name'],
+                            'target' => $targetPath,
+                            'error' => error_get_last()
+                        ]
+                    );
+                }
+            } else {
+                if (!move_uploaded_file($uploadedFile['tmp_name'], $targetPath)) {
+                    throw new FileHandlerException(
+                        "Failed to move uploaded file", 
+                        [
+                            'source' => $uploadedFile['tmp_name'],
+                            'target' => $targetPath,
+                            'error' => error_get_last()
+                        ]
+                    );
+                }
             }
-        } else {
-            if (!move_uploaded_file($uploadedFile['tmp_name'], $targetPath)) {
-                throw new FileHandlerException(
-                    "Failed to move uploaded file", 
-                    $context + ['last_error' => error_get_last()]
-                );
+
+            // Validate image and extract metadata
+            $dimensions = getimagesize($targetPath);
+            if ($dimensions === false) {
+                throw new FileHandlerException("Invalid image file", ['path' => $targetPath]);
             }
-        }
+            
+            $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($targetPath);
+            if (!$mimeType) {
+                throw new FileHandlerException("Could not determine file type", ['path' => $targetPath]);
+            }
 
-        // Get image dimensions and MIME type
-        $dimensions = getimagesize($targetPath);
-        if ($dimensions === false) {
-            throw new FileHandlerException("Invalid image file", $context);
-        }
-        
-        $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($targetPath);
-        if (!$mimeType) {
-            throw new FileHandlerException("Could not determine file type", $context);
-        }
+            return [
+                'drawing_id' => $drawingId,
+                'stored_filename' => $secureFilename,
+                'original_filename' => $uploadedFile['name'],
+                'filesize' => (int)$uploadedFile['size'],
+                'mime_type' => $mimeType,
+                'width' => (int)$dimensions[0],
+                'height' => (int)$dimensions[1],
+                'test' => $isTest,
+                'filepath' => $targetPath // For internal use only
+            ];
 
-        // Return complete metadata
-        return [
-            'drawing_id' => $drawingId,
-            'stored_filename' => $secureFilename,
-            'original_filename' => $uploadedFile['name'],
-            'filesize' => (int)$uploadedFile['size'],
-            'mime_type' => $mimeType,
-            'width' => (int)$dimensions[0],
-            'height' => (int)$dimensions[1],
-            'test' => $isTest,
-            'filepath' => $targetPath // Still included for internal use
-        ];
-
-    } catch (FileHandlerException $e) {
-        // Clean up if file was partially processed
-        if (!empty($targetPath) && file_exists($targetPath)) {
-            @unlink($targetPath);
+        } catch (FileHandlerException $e) {
+            // Cleanup if file was partially processed
+            if ($targetPath && file_exists($targetPath)) {
+                @unlink($targetPath);
+            }
+            throw $e;
         }
-        
-        throw new FileHandlerException(
-            "Upload processing failed: " . $e->getMessage(),
-            $e->getContext()
-        );
     }
-}
 
     private static function validateUpload(array $file): void 
     {
@@ -96,66 +93,11 @@ class FileHandler
         }
     }
 
-    private static function generateTargetPath(string $originalName): string 
-    {
-        $uploadDir = self::ensureUploadDirectory();
+    // Remove ensureUploadDirectory() and replace calls with:
+    private static function generateTargetPath(string $originalName): string {
+        $uploadDir = Storage::ensureUploadDir();
         $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        $filename = bin2hex(random_bytes(16)) . ($ext ? ".$ext" : '');
-        
-        return "$uploadDir/$filename";
-    }
-
-    private static function ensureUploadDirectory(): string {
-        // 1. Get configured path
-        $configuredDir = trim(Config::get('upload_directory'), '/.');
-        $configuredDir = $configuredDir ?: 'uploads'; // Default
-        
-        // 2. Validate path format
-        if (preg_match('/(^\/|\.\.)/', $configuredDir)) {
-            throw new FileHandlerException(
-                "Path must be relative to project root (e.g. 'uploads')",
-                ['invalid' => Config::get('upload_directory')]
-            );
-        }
-        
-        // 3. Resolve absolute path
-        $projectRoot = realpath(__DIR__.'/../../') or throw new RuntimeException("Project root not found");
-        $uploadDir = $projectRoot.'/'.$configuredDir;
-        
-        // 4. Verify containment (canonicalized)
-        $resolvedPath = realpath($uploadDir) ?: $uploadDir;
-        $canonicalRoot = realpath($projectRoot).'/';
-        if (strpos($resolvedPath.'/', $canonicalRoot) !== 0) {
-            throw new FileHandlerException(
-                "Path escapes project boundary",
-                ['root' => $projectRoot, 'attempted' => $uploadDir]
-            );
-        }
-        
-        // 5. Create directory
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
-            throw new FileHandlerException(
-                "Directory creation failed",
-                ['path' => $uploadDir, 'error' => error_get_last()]
-            );
-        }
-        
-        return $uploadDir;
-    }
-
-    private static function getMimeType(string $path): string 
-    {
-        return (new \finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
-    }
-
-    private static function getImageWidth(string $path): ?int 
-    {
-        return getimagesize($path)[0] ?? null;
-    }
-
-    private static function getImageHeight(string $path): ?int 
-    {
-        return getimagesize($path)[1] ?? null;
+        return $uploadDir.'/'.bin2hex(random_bytes(16)).($ext ? ".$ext" : '');
     }
 
     private static function getUploadError(int $code): string 

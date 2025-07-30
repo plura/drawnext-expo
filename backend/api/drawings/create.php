@@ -1,138 +1,109 @@
 <?php
-
 // backend/api/drawings/create.php
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/../../bootstrap.php';
 
-use Lib\ApiResponse;
-use Lib\Auth;
-use Lib\Config;
-use Lib\FileHandler;
-use Lib\FileHandlerException;
-use Lib\User;
-use Lib\Validation;
+use Lib\{
+    ApiResponse,
+    Auth,
+    Config,
+    Env,
+    FileHandler,
+    FileHandlerException,
+    User,
+    Validation
+};
 
 $deps = dependencies();
 $db = $deps['db'];
-$request = $deps['request']; // Contains parsed input and files
+$request = $deps['request'];
 
 try {
-    // ==============================================
     // 1. Validate Required Fields
-    // ==============================================
-    $required = ['email', 'notebook_id', 'section_id', 'page'];
-    foreach ($required as $field) {
+    $requiredFields = ['email', 'notebook_id', 'section_id', 'page'];
+    foreach ($requiredFields as $field) {
         if (empty($request['input'][$field])) {
             ApiResponse::error("Missing required field: $field", 400);
         }
     }
 
-    $email = $request['input']['email'];
-    $notebookId = (int)$request['input']['notebook_id'];
-    $sectionId = (int)$request['input']['section_id'];
-    $page = (int)$request['input']['page'];
+    // 2. Validate and Parse Inputs
+    $email = filter_var($request['input']['email'], FILTER_VALIDATE_EMAIL)
+        ?: ApiResponse::error("Invalid email format", 400);
 
-    // ==============================================
-    // 2. Validate Email Format
-    // ==============================================
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        ApiResponse::error("Invalid email format", 400);
-    }
+    $notebookId = Validation::notebook((int)$request['input']['notebook_id'], $db);
+    $sectionId = Validation::section((int)$request['input']['section_id'], $notebookId, $db);
+    $page = Validation::page((int)$request['input']['page'], $notebookId, $db);
 
-    // ==============================================
-    // 3. Handle User Registration/Authentication
-    // ==============================================
+    // 3. Handle User Auth
     try {
-        $userId = User::getIdByEmail($db, $email);
-        
-        if (!$userId) {
-            // Check if new registrations are allowed
-            if (!Config::get('allow_submission_registry')) {
-                ApiResponse::error("New account registration is currently disabled", 403);
-            }
-
-            // Validate auth method
-            if (Config::get('auth_method') !== Auth::METHOD_EMAIL_ONLY) {
-                ApiResponse::error("This authentication method is not supported", 400);
-            }
-            
-            $userId = User::register($db, $email);
-        }
-    } catch (RuntimeException $e) {
-        // Catches all User::register() exceptions with ready-to-use messages
-        ApiResponse::error($e->getMessage(), 400);
+        $userId = User::getIdByEmail($db, $email) 
+            ?? match (true) {
+                !Config::get('allow_submission_registry') => 
+                    ApiResponse::error("New registrations disabled", 403),
+                Config::get('auth_method') !== Auth::METHOD_EMAIL_ONLY => 
+                    ApiResponse::error("Unsupported auth method", 400),
+                default => User::register($db, $email)
+            };
     } catch (PDOException $e) {
-        error_log("Database error during registration: " . $e->getMessage());
-        ApiResponse::error("Our registration system is temporarily unavailable", 503);
+        error_log("[" . date('c') . "] DB Error: " . $e->getMessage());
+        ApiResponse::error("Registration system unavailable", 503);
     }
 
-    // ==============================================
-    // 4. Validate Drawing Parameters
-    // ==============================================
-    $notebookId = Validation::notebook($notebookId, $db);
-    $sectionId = Validation::section($sectionId, $notebookId, $db);
-    $page = Validation::page($page, $notebookId, $db);
-
-    // ==============================================
-    // 5. Check for Existing Drawing
-    // ==============================================
+    // 4. Check Slot Availability
     if ($db->querySingle(
-        "SELECT 1 FROM drawings 
-         WHERE notebook_id = ? AND section_id = ? AND page = ?",
+        "SELECT 1 FROM drawings WHERE notebook_id = ? AND section_id = ? AND page = ?",
         [$notebookId, $sectionId, $page]
     )) {
-        ApiResponse::conflict("This drawing slot is already taken");
+        ApiResponse::conflict("Drawing slot already taken");
     }
 
-    // ==============================================
-    // 6. Create Drawing Record (Database Transaction)
-    // ==============================================
+    // 5. Create Drawing (Atomic Transaction)
     try {
         $db->beginTransaction();
 
         // Insert drawing record
         $db->execute(
-            "INSERT INTO drawings (user_id, notebook_id, section_id, page)
-            VALUES (?, ?, ?, ?)",
+            "INSERT INTO drawings (user_id, notebook_id, section_id, page) VALUES (?, ?, ?, ?)",
             [$userId, $notebookId, $sectionId, $page]
         );
         $drawingId = $db->lastInsertId();
 
-        // Handle file upload (with separate error handling)
+        // Handle file upload
         $fileMeta = null;
         if (!empty($request['files']['drawing'])) {
             try {
-                $fileMeta = FileHandler::processUpload($request['files']['drawing'], $drawingId);
-                
+                $fileMeta = FileHandler::processUpload(
+                    $request['files']['drawing'],
+                    $drawingId,
+                    (bool)Env::get('TEST_MODE', false)
+                );
+
+                // Explicit positional parameters (clear field-value mapping)
                 $db->execute(
                     "INSERT INTO files 
                     (drawing_id, stored_filename, original_filename, filesize, mime_type, width, height, test) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     [
-                        $fileMeta['drawing_id'],
-                        $fileMeta['stored_filename'],
-                        $fileMeta['original_filename'],
-                        $fileMeta['filesize'],
-                        $fileMeta['mime_type'],
-                        $fileMeta['width'],
-                        $fileMeta['height'],
-                        (int)$fileMeta['test'] // Explicit cast to integer (0/1)
+                        $fileMeta['drawing_id'],          // 1. drawing_id (int)
+                        $fileMeta['stored_filename'],     // 2. stored_filename (string)
+                        $fileMeta['original_filename'],   // 3. original_filename (string)
+                        $fileMeta['filesize'],            // 4. filesize (int)
+                        $fileMeta['mime_type'],           // 5. mime_type (string)
+                        $fileMeta['width'],               // 6. width (int)
+                        $fileMeta['height'],              // 7. height (int)
+                        (int)$fileMeta['test']            // 8. test (0/1)
                     ]
                 );
-                            
             } catch (FileHandlerException $e) {
                 $db->rollBack();
-                
-                error_log("File upload failed - " . $e->getMessage() . "\nContext: " . 
-                        json_encode($e->getContext(), JSON_PRETTY_PRINT));
-                
-                return ApiResponse::error(
-                    "Failed to process image upload",
+                error_log("[" . date('c') . "] File Upload Error: " . $e->getMessage());
+                ApiResponse::error(
+                    "File processing failed",
                     400,
-                    Env::get('ENV') === 'development' ? [
-                        'debug' => $e->getMessage(),
-                        'context' => $e->getContext()
-                    ] : []
+                    Env::get('ENV') === 'development' ? ['debug' => $e->getMessage()] : null
                 );
             }
         }
@@ -143,17 +114,19 @@ try {
             'drawing_id' => $drawingId,
             'user_id' => $userId,
             'file_uploaded' => $fileMeta !== null,
-            'preview_url' => $fileMeta ? '/uploads/' . basename($fileMeta['filepath']) : null
+            'preview_url' => $fileMeta 
+                ? '/uploads/' . rawurlencode(basename($fileMeta['filepath']))
+                : null
         ]);
 
-    } catch (\PDOException $e) {
+    } catch (PDOException $e) {
         $db->rollBack();
-        error_log("Database error: " . $e->getMessage());
+        error_log("[" . date('c') . "] DB Error: " . $e->getMessage());
         ApiResponse::error("Database operation failed", 500);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         $db->rollBack();
-        error_log("System error: " . $e->getMessage());
-        ApiResponse::error("Failed to save drawing", 500);
+        error_log("[" . date('c') . "] System Error: " . $e->getMessage());
+        ApiResponse::error("Operation failed", 500);
     }
 
 } catch (InvalidArgumentException $e) {

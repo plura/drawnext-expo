@@ -35,20 +35,34 @@ class Database
     }
 
     /* ---------------------- Transaction Methods ---------------------- */
-    
+
     public function beginTransaction(): void 
     {
+        if ($this->inTransaction()) {
+            throw new \RuntimeException('Transaction already active');
+        }
         $this->pdo->beginTransaction();
     }
 
     public function commit(): void 
     {
+        if (!$this->inTransaction()) {
+            throw new \RuntimeException('No active transaction to commit');
+        }
         $this->pdo->commit();
     }
 
     public function rollBack(): void 
     {
-        $this->pdo->rollBack();
+        if ($this->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        // Silent no-op if no transaction (defensive programming)
+    }
+
+    public function inTransaction(): bool
+    {
+        return $this->pdo->inTransaction();
     }
 
     /* ---------------------- Core Methods ---------------------- */
