@@ -6,30 +6,21 @@ namespace Lib;
 
 use InvalidArgumentException;
 
-
 class Validation
 {
-
 	/**
-	 * Validate email format and check existence in database
+	 * Validate email format only (no DB).
 	 * @param string $email Email address to validate
-	 * @param Database $db Database instance
-	 * @return int Validated user ID
-	 * @throws InvalidArgumentException On validation failure
+	 * @return string Validated (trimmed) email
+	 * @throws InvalidArgumentException On invalid format
 	 */
-	public static function email(string $email, Database $db): int
+	public static function email(string $email): string
 	{
+		$email = trim($email);
 		if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 			throw new InvalidArgumentException("Invalid email format");
 		}
-
-		$user = $db->querySingle("SELECT user_id FROM users WHERE email = ?", [$email]);
-
-		if (!$user) {
-			throw new InvalidArgumentException("Email not registered");
-		}
-
-		return (int) $user['user_id'];
+		return $email;
 	}
 
 	/**
@@ -65,7 +56,7 @@ class Validation
 	{
 		$id = $db->querySingle(
 			"SELECT section_id FROM sections 
-         WHERE section_id = ? AND notebook_id = ?",
+             WHERE section_id = ? AND notebook_id = ?",
 			[$section_id, $notebook_id]
 		)['section_id'] ?? 0;
 

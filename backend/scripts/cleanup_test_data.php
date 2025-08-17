@@ -1,6 +1,5 @@
 <?php
 // backend/scripts/cleanup_test_data.php
-
 declare(strict_types=1);
 
 // 1. CLI Execution Check
@@ -33,6 +32,7 @@ try {
     $stats = [
         'files' => $db->querySingle("SELECT COUNT(*) FROM files WHERE test = 1")['COUNT(*)'],
         'drawings' => $db->querySingle("SELECT COUNT(*) FROM drawings WHERE test = 1")['COUNT(*)'],
+        'neighbors' => $db->querySingle("SELECT COUNT(*) FROM drawing_neighbors WHERE drawing_id IN (SELECT drawing_id FROM drawings WHERE test = 1)")['COUNT(*)'],
         'users' => $db->querySingle("SELECT COUNT(*) FROM users WHERE test = 1")['COUNT(*)']
     ];
 
@@ -40,6 +40,7 @@ try {
         echo "Test data found:\n"
            . "- Files: {$stats['files']}\n"
            . "- Drawings: {$stats['drawings']}\n"
+           . "- Neighbor Relationships: {$stats['neighbors']}\n"
            . "- Users: {$stats['users']}\n\n";
     }
 
@@ -53,10 +54,17 @@ try {
     // 6. Database Cleanup
     if (!$isDryRun) {
         $db->beginTransaction();
-        $db->execute("DELETE FROM files WHERE test = 1");
-        $db->execute("DELETE FROM drawings WHERE test = 1");
-        $db->execute("DELETE FROM users WHERE test = 1");
-        $db->commit();
+        try {
+            // Delete in proper order to maintain referential integrity
+            $db->execute("DELETE FROM drawing_neighbors WHERE drawing_id IN (SELECT drawing_id FROM drawings WHERE test = 1)");
+            $db->execute("DELETE FROM files WHERE test = 1");
+            $db->execute("DELETE FROM drawings WHERE test = 1");
+            $db->execute("DELETE FROM users WHERE test = 1");
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
     }
 
     // 7. Filesystem Cleanup
@@ -71,28 +79,27 @@ try {
         if (!$isDryRun && file_exists($path)) {
             unlink($path) ? $deletedCount++ : error_log("Failed to delete: $path");
         } elseif ($isDryRun) {
-            $deletedCount++; // Count for report
+            $deletedCount++;
         }
     }
 
     // 8. Results
     echo sprintf(
         "\nCleanup %s:\n"
-        . "- %sFiles: %d\n"
+        . "- %sFiles: %d/%d\n"
         . "- %sDrawings: %d\n"
+        . "- %sNeighbor Relationships: %d\n"
         . "- %sUsers: %d\n"
         . "- %sFiles Deleted: %d/%d\n",
         $isDryRun ? "simulation complete" : "complete",
-        $isDryRun ? "[DRY RUN] " : "", $stats['files'],
+        $isDryRun ? "[DRY RUN] " : "", $deletedCount, $stats['files'],
         $isDryRun ? "[DRY RUN] " : "", $stats['drawings'],
+        $isDryRun ? "[DRY RUN] " : "", $stats['neighbors'],
         $isDryRun ? "[DRY RUN] " : "", $stats['users'],
         $isDryRun ? "[DRY RUN] " : "", $deletedCount, count($files)
     );
 
 } catch (Throwable $e) {
-    if (isset($db) && $db->inTransaction()) {
-        $db->rollBack();
-    }
     error_log("[" . date('c') . "] CLEANUP ERROR: " . $e->getMessage());
     die("FAILED: " . $e->getMessage() . "\n");
 }

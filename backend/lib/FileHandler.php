@@ -1,6 +1,5 @@
 <?php
 // backend/lib/FileHandler.php
-
 namespace Lib;
 
 use Lib\FileHandlerException;
@@ -8,69 +7,48 @@ use RuntimeException;
 
 class FileHandler 
 {
-    public static function processUpload(array $uploadedFile, int $drawingId, bool $isTest = false): array 
-    {
-        $targetPath = null; // Initialize for error handling
+    /**
+     * Processes and validates a file upload
+     */
+    public static function processUpload(
+        array $uploadedFile,
+        bool $isTest = false
+    ): array {
+        $targetPath = null;
         
         try {
-            // Validate file structure and content
             self::validateUpload($uploadedFile);
+            $targetPath = self::generateTargetPath($uploadedFile['name']);
             
-            // Generate secure filename and target path
-            $extension = strtolower(pathinfo($uploadedFile['name'], PATHINFO_EXTENSION));
-            $secureFilename = bin2hex(random_bytes(16)) . ($extension ? ".$extension" : '');
-            $targetPath = self::generateTargetPath($secureFilename);
-            
-            // Handle file transfer based on test mode
+            // Handle file transfer
             if ($isTest) {
                 if (!copy($uploadedFile['tmp_name'], $targetPath)) {
                     throw new FileHandlerException(
-                        "Failed to copy test file",
-                        [
-                            'source' => $uploadedFile['tmp_name'],
-                            'target' => $targetPath,
-                            'error' => error_get_last()
-                        ]
+                        "Test file copy failed",
+                        error_get_last()
                     );
                 }
             } else {
                 if (!move_uploaded_file($uploadedFile['tmp_name'], $targetPath)) {
                     throw new FileHandlerException(
-                        "Failed to move uploaded file", 
-                        [
-                            'source' => $uploadedFile['tmp_name'],
-                            'target' => $targetPath,
-                            'error' => error_get_last()
-                        ]
+                        "File upload failed", 
+                        error_get_last()
                     );
                 }
             }
 
-            // Validate image and extract metadata
-            $dimensions = getimagesize($targetPath);
-            if ($dimensions === false) {
-                throw new FileHandlerException("Invalid image file", ['path' => $targetPath]);
-            }
-            
-            $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($targetPath);
-            if (!$mimeType) {
-                throw new FileHandlerException("Could not determine file type", ['path' => $targetPath]);
-            }
-
             return [
-                'drawing_id' => $drawingId,
-                'stored_filename' => $secureFilename,
+                'stored_filename' => basename($targetPath),
                 'original_filename' => $uploadedFile['name'],
                 'filesize' => (int)$uploadedFile['size'],
-                'mime_type' => $mimeType,
-                'width' => (int)$dimensions[0],
-                'height' => (int)$dimensions[1],
-                'test' => $isTest,
-                'filepath' => $targetPath // For internal use only
+                'mime_type' => self::getMimeType($targetPath),
+                'width' => self::getImageDimensions($targetPath)[0],
+                'height' => self::getImageDimensions($targetPath)[1],
+                'filepath' => $targetPath,
+                'is_test_copy' => $isTest
             ];
 
         } catch (FileHandlerException $e) {
-            // Cleanup if file was partially processed
             if ($targetPath && file_exists($targetPath)) {
                 @unlink($targetPath);
             }
@@ -78,13 +56,29 @@ class FileHandler
         }
     }
 
-    private static function validateUpload(array $file): void 
-    {
+    /**
+     * Cleans up uploaded files
+     */
+    public static function cleanup(array $fileMeta): void {
+        if (!($fileMeta['is_test_copy'] ?? false) && !empty($fileMeta['filepath'])) {
+            @unlink($fileMeta['filepath']);
+        }
+    }
+
+    // ===== PRIVATE METHODS ===== //
+
+    private static function generateTargetPath(string $originalName): string {
+        $uploadDir = Storage::ensureUploadDir();
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        return $uploadDir . '/' . bin2hex(random_bytes(16)) . ($extension ? ".$extension" : '');
+    }
+
+    private static function validateUpload(array $file): void {
         if ($file['error'] !== UPLOAD_ERR_OK) {
             throw new RuntimeException(self::getUploadError($file['error']));
         }
 
-        $maxSize = (int) Config::get('max_upload_size') * 1024 * 1024;
+        $maxSize = (int)Config::get('max_upload_size') * 1024 * 1024;
         if ($file['size'] > $maxSize) {
             throw new RuntimeException(sprintf(
                 "File exceeds %dMB limit", 
@@ -93,15 +87,23 @@ class FileHandler
         }
     }
 
-    // Remove ensureUploadDirectory() and replace calls with:
-    private static function generateTargetPath(string $originalName): string {
-        $uploadDir = Storage::ensureUploadDir();
-        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        return $uploadDir.'/'.bin2hex(random_bytes(16)).($ext ? ".$ext" : '');
+    private static function getImageDimensions(string $path): array {
+        $dimensions = getimagesize($path);
+        if ($dimensions === false) {
+            throw new FileHandlerException("Invalid image file");
+        }
+        return $dimensions;
     }
 
-    private static function getUploadError(int $code): string 
-    {
+    private static function getMimeType(string $path): string {
+        $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($path);
+        if (!$mimeType) {
+            throw new FileHandlerException("Could not determine file type");
+        }
+        return $mimeType;
+    }
+
+    private static function getUploadError(int $code): string {
         return [
             UPLOAD_ERR_INI_SIZE => "File exceeds server size limit",
             UPLOAD_ERR_FORM_SIZE => "File exceeds form size limit",
@@ -111,12 +113,5 @@ class FileHandler
             UPLOAD_ERR_CANT_WRITE => "Failed to write file",
             UPLOAD_ERR_EXTENSION => "File type not allowed"
         ][$code] ?? "Unknown upload error (Code: $code)";
-    }
-
-    public static function cleanup(array $file): void 
-    {
-        if (!($file['is_test_copy'] ?? false) && !empty($file['filepath'])) {
-            @unlink($file['filepath']);
-        }
     }
 }

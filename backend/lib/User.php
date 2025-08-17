@@ -1,6 +1,5 @@
 <?php
 // backend/lib/User.php
-
 namespace Lib;
 
 use RuntimeException;
@@ -8,6 +7,34 @@ use PDOException;
 use Lib\Database;
 
 class User {
+    const METHOD_EMAIL_ONLY = 'email_only';
+    const METHOD_EMAIL_PASSWORD = 'email_password';
+
+    /**
+     * Resolves a user ID, registering if needed and allowed
+     * @throws RuntimeException
+     */
+    public static function resolveUserId(
+        Database $db,
+        string $email,
+        bool $allowRegistration,
+        string $authMethod,
+        ?string $password = null
+    ): int {
+        $userId = self::getIdByEmail($db, $email);
+        if ($userId) {
+            return $userId;
+        }
+
+        if (!$allowRegistration) {
+            throw new RuntimeException('New registrations are currently disabled');
+        }
+
+        return self::register($db, $email, 
+            ($authMethod === self::METHOD_EMAIL_PASSWORD) ? $password : null
+        );
+    }
+
     /**
      * Registers a user with email and optional password
      * @throws RuntimeException With user-friendly message ready for display
