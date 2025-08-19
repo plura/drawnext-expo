@@ -13,7 +13,7 @@ class Storage {
      */
     public static function getUploadDir(): string {
         // 1. Get configured path
-        $configuredDir = trim(Config::get('upload_directory'), '/.');
+        $configuredDir = trim(Config::get('uploads.directory'), '/.');
         $configuredDir = $configuredDir ?: 'uploads'; // Default
         
         // 2. Validate path format

@@ -33,8 +33,8 @@ try {
     $userId = User::resolveUserId(
         $deps['db'],
         $email,
-        Config::get('allow_submission_registry'),
-        Config::get('auth_method')
+        Config::get('submissions.allow_registration'),
+        Config::get('users.auth_method')
     );
 
     // 4) Validate Slot Availability (app-side check; also add DB unique index)

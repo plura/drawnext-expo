@@ -5,38 +5,62 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../bootstrap.php';
 
 use Lib\ApiResponse;
+use Lib\Config;
 
 try {
-	$db = dependencies()['db'];
+    $deps = dependencies();
+    $db   = $deps['db'];
 
-	$notebooks = $db->query("
-		SELECT 
-			n.notebook_id AS id,
-			n.name,
-			n.pages,
-			(
-				SELECT JSON_ARRAYAGG(
-					JSON_OBJECT(
-						'id', s.section_id,
-						'label', s.label,
-						'position', s.position
-					) ORDER BY s.position
-				)
-				FROM sections s
-				WHERE s.notebook_id = n.notebook_id
-			) AS sections
-		FROM notebooks n
-		ORDER BY n.notebook_id
-	");
+    // Fallback pages from config (e.g., notebooks.pages.fallback_count = 10)
+    $fallback = (int) Config::get('notebooks.pages.fallback_count');
 
-	// Decode JSON sections into PHP arrays
-	foreach ($notebooks as &$notebook) {
-		$notebook['sections'] = $notebook['sections'] 
-			? json_decode($notebook['sections'], true) 
-			: [];
-	}
+    $sql = "
+        SELECT
+            n.notebook_id AS id,
+            n.name,
+            COALESCE(n.pages, ?) AS pages,
+            COALESCE(
+                (
+                    SELECT CONCAT(
+                        '[',
+                        GROUP_CONCAT(
+                            JSON_OBJECT(
+                                'id', s.section_id,
+                                'label', s.label,
+                                'position', s.`position`
+                            )
+                            ORDER BY s.`position`
+                            SEPARATOR ','
+                        ),
+                        ']'
+                    )
+                    FROM sections s
+                    WHERE s.notebook_id = n.notebook_id
+                ),
+                JSON_ARRAY()  -- return [] when no sections
+            ) AS sections
+        FROM notebooks n
+        ORDER BY n.notebook_id";
 
-	ApiResponse::success($notebooks);
-} catch (Exception $e) {
-	ApiResponse::error("Failed to load notebook data");
+    $rows = $db->query($sql, [$fallback]);
+
+
+    // Decode JSON sections and coerce types
+    foreach ($rows as &$nb) {
+        $nb['pages']    = (int) $nb['pages'];
+        $nb['sections'] = $nb['sections'] ? json_decode($nb['sections'], true) : [];
+        if (is_array($nb['sections'])) {
+            foreach ($nb['sections'] as &$s) {
+                $s['id']       = (int) $s['id'];
+                $s['position'] = (int) $s['position'];
+            }
+            unset($s);
+        }
+    }
+    unset($nb);
+
+    ApiResponse::success($rows, []);
+} catch (Throwable $e) {
+    error_log("[notebooks/config] " . $e->getMessage());
+    ApiResponse::error("Failed to load notebook data");
 }

@@ -8,9 +8,9 @@ use Lib\Database;
 use Lib\Config;
 
 // 2. Initialize environment
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/');
 $dotenv->safeLoad();
-
+//echo Env::get('DB_HOST') . "|" . Env::get('DB_NAME') . "|" . Env::get('DB_USER') . "|" . Env::get('DB_PASS') . "\n";
 // 3. Set error handling
 ini_set('log_errors', '1');
 if (Env::get('ENV', 'production') === 'development') {

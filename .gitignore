@@ -1,4 +1,36 @@
+# -----------------------------
+# Core
+# -----------------------------
 .env
+.env.local
+*.env.*
+
+# Node
+/node_modules/
+/dist/
+/.vite/
+
+# PHP / Composer
+/vendor/
+
+# -----------------------------
+# Local dev tools
+# -----------------------------
 .ddev/
-.trash/
-.vscode/
+/.vscode/
+/.idea/
+/trash/
+/*.log
+
+# -----------------------------
+# Frontend build output
+# -----------------------------
+/public/assets/
+/public/index.html
+/public/manifest*.json
+
+# -----------------------------
+# System files
+# -----------------------------
+.DS_Store
+Thumbs.db

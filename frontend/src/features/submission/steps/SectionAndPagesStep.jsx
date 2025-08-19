@@ -1,77 +1,87 @@
-import { useMemo } from 'react'
-import SectionGroup from './SectionGroup'
-import { getNotebook, getSections } from '../lib/sections'
-import { isValidPage } from '../lib/validation'
-import { findNeighbor, upsertNeighbor, removeNeighbor, neighborsAreValid } from '../lib/neighbors'
+// src/features/submission/steps/SectionAndPagesStep.jsx
+import React, { useMemo } from "react"
+import SectionGroup from "./SectionGroup"
+import { getNotebook, getSections, getSectionLabel } from "../lib/sections"
+import { upsertNeighbor, removeNeighbor } from "../lib/neighbors"
+import { isValidPage } from "../lib/validation"
 
-// UI
+export const stepTitle = "Select section and pages"
+export const stepDescription =
+  "First select your section, then choose its page number. Neighbor pages are optional — fill them only if you saw drawings in those sections."
+
+export function validateSectionPages(state, notebooks) {
+  const nb = getNotebook(notebooks, state.notebookId)
+  if (!nb) return false
+  if (!state.sectionId) return false
+  if (!isValidPage(state.page, nb.pages)) return false
+  return true
+}
+
 export default function SectionAndPagesStep({ state, patch, notebooks }) {
-  const notebook = useMemo(() => getNotebook(notebooks, state.notebookId), [notebooks, state.notebookId])
-  const sections = useMemo(() => getSections(notebook), [notebook])
-  const maxPages = typeof notebook?.pages === 'number' ? notebook.pages : null
+  const notebook = useMemo(
+    () => getNotebook(notebooks, state.notebookId),
+    [notebooks, state.notebookId]
+  ) 
+  if (!notebook) return <p>No notebook selected</p>
 
-  const showFields = Boolean(state.sectionId)
+  const sections = useMemo(
+    () => getSections(notebook),
+    [notebook]
+  ); 
+  const primarySectionId = Number(state.sectionId) || null
 
-  const onSelectSection = (sectionId) => {
-    if (Number(state.sectionId) === Number(sectionId)) return
-    patch({ sectionId: Number(sectionId), page: '', neighbors: [] })
+  function handleSelectPrimary(sectionId) {
+    patch({
+      sectionId: Number(sectionId),
+      // ensure neighbors no longer include the chosen primary
+      neighbors: (state.neighbors || []).filter(
+        (n) => Number(n.section_id) !== Number(sectionId)
+      ),
+    })
   }
 
-  const onChangePrimaryPage = (value) => patch({ page: value })
+  function handleChangePrimaryPage(next) {
+    // keep as string in state; payload builder converts to numbers
+    patch({ page: String(next) })
+  }
 
-  const onChangeNeighborPage = (sectionId, value) => {
-    const trimmed = String(value).trim()
-    if (trimmed === '') {
-      patch({ neighbors: removeNeighbor(state.neighbors, sectionId) })
+  function handleChangeNeighborPage(sectionId, next) {
+    const val = String(next)
+    if (val === "") {
+      patch({ neighbors: removeNeighbor(state.neighbors || [], sectionId) })
       return
     }
-    patch({ neighbors: upsertNeighbor(state.neighbors, sectionId, trimmed) })
+    patch({
+      neighbors: upsertNeighbor(state.neighbors || [], sectionId, val),
+    })
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Section &amp; pages</h2>
+    <div className="space-y-3">
+      {sections.map((sec) => {
+        const label = getSectionLabel(sec)
+        const isPrimary = primarySectionId
+          ? Number(primarySectionId) === Number(sec.id)
+          : false
+        const neighbor = (state.neighbors || []).find(
+          (n) => Number(n.section_id) === Number(sec.id)
+        )
 
-      <p className="text-sm text-gray-600" aria-live="polite">
-        {!state.sectionId
-          ? 'First select your section, then its page number. Neighbor pages are optional — fill them only if you saw drawings in those sections.'
-          : 'Enter your page for the selected section. Neighbor pages are optional — fill them only if you saw drawings in those sections.'}
-      </p>
-
-      <div className="space-y-3">
-        {sections.map((s) => {
-          const isPrimary = Number(state.sectionId) === Number(s.id)
-          const neighbor = findNeighbor(state.neighbors, s.id)
-          return (
-            <SectionGroup
-              key={s.id}
-              section={s}
-              isPrimary={isPrimary}
-              showField={showFields}
-              primaryPage={state.page}
-              neighborPage={neighbor?.page || ''}
-              maxPages={maxPages}
-              autoFocus={showFields && isPrimary}
-              onSelect={() => onSelectSection(s.id)}
-              onChangePrimaryPage={onChangePrimaryPage}
-              onChangeNeighborPage={(v) => onChangeNeighborPage(s.id, v)}
-            />
-          )
-        })}
-      </div>
-
-      {state.sectionId && typeof maxPages === 'number' && (
-        <p className="text-xs text-gray-500">Notebook has {maxPages} pages.</p>
-      )}
+        return (
+          <SectionGroup
+            key={sec.id}
+            section={sec}
+            label={label}
+            isPrimary={primarySectionId ? isPrimary : undefined}
+            maxPages={notebook.pages} 
+            primaryPage={isPrimary ? state.page : ""}
+            neighborPage={!isPrimary ? neighbor?.page ?? "" : ""}
+            onSelectPrimary={handleSelectPrimary}
+            onChangePrimaryPage={handleChangePrimaryPage}
+            onChangeNeighborPage={(val) => handleChangeNeighborPage(sec.id, val)}
+          />
+        )
+      })}
     </div>
   )
-}
-
-// Validator (needs notebooks to enforce max pages)
-export function validateSectionPages(state, notebooks) {
-  const notebook = notebooks?.find(n => Number(n.id) === Number(state.notebookId)) || null
-  const maxPages = typeof notebook?.pages === 'number' ? notebook.pages : null
-
-  if (!state.sectionId || !isValidPage(state.page, maxPages)) return false
-  return neighborsAreValid(state.neighbors, maxPages)
 }

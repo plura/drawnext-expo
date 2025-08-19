@@ -18,7 +18,7 @@ class Auth {
 
     public static function login(string $email, ?string $password = null): bool {
         self::init();
-        $authMode = Config::get('auth_method');
+        $authMode = Config::get('users.auth_method');
 
         switch ($authMode) {
             case self::METHOD_EMAIL_ONLY:

@@ -1,33 +1,42 @@
-// UI
-export default function NotebookSelectStep({ state, patch, notebooks }) {
-  return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Select notebook</h2>
+// src/features/submission/steps/NotebookSelectStep.jsx
 
-      <div className="grid grid-cols-2 gap-3">
-        {notebooks.map((nb) => {
-          const selected = Number(state.notebookId) === Number(nb.id)
-          return (
-            <button
-              key={nb.id}
-              type="button"
-              onClick={() => patch({ notebookId: Number(nb.id), sectionId: null, neighbors: [], page: '' })}
-              className={`rounded-xl border p-4 text-left ${selected ? 'ring-2 ring-black' : ''}`}
-              aria-pressed={selected}
-            >
-              <div className="text-base font-medium">{nb.name || `Notebook ${nb.id}`}</div>
-              {typeof nb.pages === 'number' && (
-                <div className="text-xs text-gray-500 mt-1">{nb.pages} pages</div>
-              )}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
+export const stepTitle = "Choose your notebook"
+export const stepDescription =
+	"Tap the notebook you used. If you scanned a QR code, this may be preselected."
+
+export function validateNotebook(state) {
+	return !!state.notebookId
 }
 
-// Validator
-export function validateNotebook(state) {
-  return !!state.notebookId
+export default function NotebookSelectStep({ state, patch, notebooks }) {
+	return (
+		<div className="grid grid-cols-2 gap-4">
+			{notebooks.map((nb) => {
+				const isActive = Number(state.notebookId) === Number(nb.id)
+				return (
+					<button
+						key={nb.id}
+						type="button"
+						onClick={() => patch({ notebookId: Number(nb.id) })}
+						aria-pressed={isActive}
+						className={`aspect-[3/2] w-full rounded-xl border flex flex-col items-center justify-center text-center transition 
+							${isActive ? "bg-blue-600 text-white" : "bg-white hover:bg-gray-50"}`}
+					>
+						<span className="font-medium truncate">
+							{nb.name || `Notebook ${nb.id}`}
+						</span>
+						{typeof nb.pages === "number" && (
+							<span
+								className={`text-xs ${
+									isActive ? "text-blue-100" : "text-muted-foreground"
+								}`}
+							>
+								up to {nb.pages} pages
+							</span>
+						)}
+					</button>
+				)
+			})}
+		</div>
+	)
 }

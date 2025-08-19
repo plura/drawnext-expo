@@ -1,3 +1,5 @@
+//src/features/submission/lib/neighbors.js
+
 /**
  * Find a neighbor entry for a given section.
  * @param {Array<{section_id:number, page:string}>} neighbors - Current neighbor list
