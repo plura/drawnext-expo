@@ -1,16 +1,23 @@
 # -----------------------------
-# Core
+# Environment / Config
 # -----------------------------
-.env
-.env.local
-*.env.*
+# Backend: keep local secrets out of git
+/backend/.env
 
-# Node
+# Frontend: commit shared envs, ignore only local overrides
+/frontend/.env.local
+/frontend/.env.*.local
+
+# -----------------------------
+# Node.js / Vite
+# -----------------------------
 /node_modules/
 /dist/
 /.vite/
 
+# -----------------------------
 # PHP / Composer
+# -----------------------------
 /vendor/
 
 # -----------------------------

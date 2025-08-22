@@ -1,4 +1,4 @@
-// src/components/AppAlert.jsx
+// src/components/app/AppAlert.jsx
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 
 export default function AppAlert({

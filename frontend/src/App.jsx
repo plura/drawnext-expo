@@ -19,7 +19,7 @@ export default function App() {
 					<main className="mx-auto w-full max-w-md md:max-w-lg lg:max-w-xl p-4 flex-1 min-h-0 flex flex-col">
 						<Routes>
 							<Route path="/" element={<Home />} />
-							<Route path="/submission" element={<Submission />} />
+							<Route path="/submit" element={<Submission />} />
 {/* 							<Route path="/gallery" element={<Gallery />} />
 							<Route path="/about" element={<About />} /> */}
 							<Route path="*" element={<p>Page not found</p>} />

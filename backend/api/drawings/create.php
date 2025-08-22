@@ -17,6 +17,19 @@ try {
 
     $drawingData = $request['input']['drawing'];
     $neighbors   = $request['input']['neighbors'] ?? [];
+    $uploadToken = isset($drawingData['upload_token']) && is_string($drawingData['upload_token'])
+        ? trim($drawingData['upload_token'])
+        : null;
+
+    // XOR guard: exactly one of { upload_token, drawing file } must be present
+    $hasFile  = isset($request['files']['drawing']) && is_array($request['files']['drawing']);
+    $hasToken = is_string($uploadToken) && $uploadToken !== '';
+    if ($hasFile && $hasToken) {
+        ApiResponse::validationError(['error' => 'Provide either upload_token or drawing file, not both']);
+    }
+    if (!$hasFile && !$hasToken) {
+        ApiResponse::error('No image provided (upload_token or drawing file required)', 400);
+    }
 
     // 2) Validate Core Fields presence
     $required = ['email', 'notebook_id', 'section_id', 'page'];
@@ -54,9 +67,10 @@ try {
         notebookId: Validation::notebook((int)$drawingData['notebook_id'], $deps['db']),
         sectionId:  Validation::section((int)$drawingData['section_id'], (int)$drawingData['notebook_id'], $deps['db']),
         page:       Validation::page((int)$drawingData['page'], (int)$drawingData['notebook_id'], $deps['db']),
-        uploadedFile: $request['files']['drawing'] ?? null,
+        uploadedFile: $request['files']['drawing'] ?? null,    // legacy single-shot path
         neighbors:    $neighbors,
-        isTest:       (bool)Env::get('TEST_MODE', false)
+        isTest:       (bool)Env::get('TEST_MODE', false),
+        uploadToken:  $uploadToken                             // two-phase path (optional)
     );
 
     ApiResponse::success($drawing->toApiResponse());

@@ -1,3 +1,5 @@
+//components/app/Header.jsx
+
 import NavItem from "./NavItem"
 
 export default function Header() {
@@ -6,7 +8,7 @@ export default function Header() {
 			<div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
 				<NavItem to="/">DrawNext</NavItem>
 				<nav className="flex items-center gap-1 text-sm">
-					<NavItem to="/submission">Submit</NavItem>
+					<NavItem to="/submit">Submit</NavItem>
 					<NavItem to="/gallery">Gallery</NavItem>
 					<NavItem to="/about">About</NavItem>
 				</nav>

@@ -34,7 +34,8 @@ class Drawing {
     }
 
     /**
-     * Creates a new drawing with optional file upload and neighbors
+     * Creates a new drawing with optional file upload (single-shot) or temp-token finalize,
+     * and saves neighbor references. Entire operation is transactional.
      */
     public function create(
         int $userId,
@@ -43,7 +44,8 @@ class Drawing {
         int $page,
         ?array $uploadedFile,
         array $neighbors = [],
-        bool $isTest = false
+        bool $isTest = false,
+        ?string $uploadToken = null
     ): void {
         $this->validateNeighbors($neighbors, $notebookId, $sectionId);
         
@@ -52,11 +54,18 @@ class Drawing {
             $this->createDrawingRecord($userId, $notebookId, $sectionId, $page);
             
             if ($uploadedFile) {
+                // Legacy single-shot path (multipart form posts raw file)
                 $this->processFileUpload($uploadedFile, $isTest);
+            } elseif (!empty($uploadToken)) {
+                // Two-phase path: move temp -> permanent and insert file row
+                $meta = FileHandler::finalizeFromToken($uploadToken);
+                $this->insertFileRow($meta);
+                $this->fileMeta = $meta;
             }
-            
+
             $this->saveNeighbors($neighbors);
             $this->db->commit();
+
         } catch (FileHandlerException $e) {
             $this->handleRollback();
             throw new RuntimeException("File processing failed: " . $e->getMessage());
@@ -72,8 +81,8 @@ class Drawing {
     public function toApiResponse(): array {
         return [
             'drawing_id' => $this->id,
-            'preview_url' => $this->fileMeta 
-                ? '/uploads/' . rawurlencode($this->fileMeta['stored_filename'])
+            'preview_url' => $this->fileMeta
+                ? Config::get('uploads.directory') . '/' . rawurlencode($this->fileMeta['stored_filename'])
                 : null,
             'neighbors' => $this->getNeighbors()
         ];
@@ -121,7 +130,14 @@ class Drawing {
 
     private function processFileUpload(array $uploadedFile, bool $isTest): void {
         $this->fileMeta = FileHandler::processUpload($uploadedFile, $isTest);
-        
+        $this->insertFileRow($this->fileMeta);
+    }
+
+    /**
+     * Insert a files row for the current drawing using unified meta shape.
+     * @param array $meta Result from FileHandler::{processUpload|finalizeFromToken}
+     */
+    private function insertFileRow(array $meta): void {
         $this->db->execute(
             "INSERT INTO files 
              (drawing_id, stored_filename, original_filename, 
@@ -129,13 +145,13 @@ class Drawing {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $this->id,
-                $this->fileMeta['stored_filename'],
-                $this->fileMeta['original_filename'],
-                $this->fileMeta['filesize'],
-                $this->fileMeta['mime_type'],
-                $this->fileMeta['width'],
-                $this->fileMeta['height'],
-                (int)$this->fileMeta['is_test_copy']
+                $meta['stored_filename'],
+                $meta['original_filename'],
+                $meta['filesize'],
+                $meta['mime_type'],
+                $meta['width'],
+                $meta['height'],
+                (int)($meta['is_test_copy'] ?? 0),
             ]
         );
     }

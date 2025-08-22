@@ -1,4 +1,4 @@
-// src/features/submission/steps/Sequence.jsx
+// src/components/apps/Sequence.jsx
 import React from "react"
 import { Button } from "@/components/ui/button"
 

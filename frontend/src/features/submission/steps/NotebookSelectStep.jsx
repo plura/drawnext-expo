@@ -23,7 +23,7 @@ export default function NotebookSelectStep({ state, patch, notebooks }) {
 							${isActive ? "bg-blue-600 text-white" : "bg-white hover:bg-gray-50"}`}
 					>
 						<span className="font-medium truncate">
-							{nb.name || `Notebook ${nb.id}`}
+							{nb.title || `Notebook ${nb.id}`}
 						</span>
 						{typeof nb.pages === "number" && (
 							<span

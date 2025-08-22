@@ -1,7 +1,8 @@
 // src/features/submission/steps/ImageUploadStep.jsx
-import React, { useRef } from "react"
+import React, { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useObjectUrl } from "../lib/useObjectUrl"
+import { uploadTempImage } from "../lib/api" // NEW
 
 export const stepTitle = "Upload image"
 export const stepDescription =
@@ -14,6 +15,8 @@ export function validateImage(state) {
 export default function ImageUploadStep({ state, patch }) {
   const inputRef = useRef(null)
   const previewUrl = useObjectUrl(state.file)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
 
   function openPicker(e) {
     if (e) {
@@ -23,10 +26,37 @@ export default function ImageUploadStep({ state, patch }) {
     inputRef.current?.click()
   }
 
-  function onFileChange(e) {
+  async function onFileChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Always set the local preview file
     patch({ file })
+    setError(null)
+
+    // Kick off temp upload (non-blocking UX; fallback is the legacy path)
+    setUploading(true)
+    try {
+      const json = await uploadTempImage(file) // POST /api/images/temp
+      const { token, width, height, hash } = json.data || {}
+
+      if (token) {
+        patch({
+          uploadToken: token,
+          imageMeta: { width, height, hash },
+        })
+      } else {
+        // No token returned: ensure we don't carry a stale one
+        patch({ uploadToken: null, imageMeta: null })
+      }
+    } catch (err) {
+      // Do not block user; single-shot submit will still work
+      patch({ uploadToken: null, imageMeta: null })
+      setError(err?.message || "Could not prepare the image. You can still submit.")
+      // Optional: console.warn(err)
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -54,7 +84,7 @@ export default function ImageUploadStep({ state, patch }) {
               className="aspect-[4/3] w-full rounded-lg object-cover"
             />
             <p className="px-1 pb-2 text-sm text-muted-foreground">
-              Tap to replace photo
+              {uploading ? "Uploading…" : "Tap to replace photo"}
             </p>
           </div>
         ) : (
@@ -71,6 +101,12 @@ export default function ImageUploadStep({ state, patch }) {
           </div>
         )}
       </div>
+
+      {error && (
+        <p className="text-xs text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

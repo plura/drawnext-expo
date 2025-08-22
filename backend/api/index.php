@@ -1,4 +1,7 @@
 <?php
+
+//backend/index.php (API entry point)
+
 declare(strict_types=1);
 
 // ---- Minimal router for /api/* ----
