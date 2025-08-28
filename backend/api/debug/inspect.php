@@ -1,4 +1,5 @@
 <?php
+//backend/api/debug/inspect.php
 require_once __DIR__ . '/../../bootstrap.php';
 
 // Raw body

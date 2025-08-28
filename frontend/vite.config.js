@@ -26,11 +26,25 @@ export default defineConfig({
 				changeOrigin: true,
 				secure: false, // allow self-signed certs on DDEV
 				rewrite: (path) => {
-					// /api/notebooks/config  -> /backend/api/notebooks/config.php
-					// /api/drawings/create   -> /backend/api/drawings/create.php
-					const withoutApi = path.replace(/^\/api/, '/backend/api')
-					return withoutApi.endsWith('.php') ? withoutApi : `${withoutApi}.php`
+					// 1) Split the incoming URL into path and query parts
+					const [pathOnly, query = ''] = path.split('?')
+
+					// 2) Replace the /api prefix with your backend folder
+					const withoutApi = pathOnly.replace(/^\/api/, '/backend/api')
+
+					// 3) Ensure the *path* ends with .php (but don't touch the query)
+					const rewritten = withoutApi.endsWith('.php')
+						? withoutApi
+						: `${withoutApi}.php`
+
+					// 4) Re-attach the query string only if one exists
+					return query ? `${rewritten}?${query}` : rewritten
 				},
+			},
+			'/uploads': {
+				target: 'https://drawnext.ddev.site',
+				changeOrigin: true,
+				secure: false,
 			},
 		},
 	},

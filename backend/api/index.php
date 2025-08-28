@@ -1,6 +1,6 @@
 <?php
 
-//backend/index.php (API entry point)
+//backend/api/index.php (API entry point)
 
 declare(strict_types=1);
 
@@ -24,6 +24,7 @@ $routes = [
   'notebooks/config' => __DIR__ . '/notebooks/config.php',
   'drawings/create'  => __DIR__ . '/drawings/create.php',
   'drawings/list'    => __DIR__ . '/drawings/list.php',
+  'drawings/validate'=> __DIR__ . '/drawings/validate.php',
   // 'drawings/view'  => __DIR__ . '/drawings/view.php', // (add when ready)
 ];
 

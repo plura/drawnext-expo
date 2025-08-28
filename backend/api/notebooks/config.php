@@ -14,41 +14,45 @@ try {
 	// Fallback pages from config (e.g., notebooks.pages.fallback_count = 10)
 	$fallback = (int) Config::get('notebooks.pages.fallback_count');
 
+	// Read global aspect ratio from config (CSV -> ['1','1'])
+	$ar  = (array) Config::get('images.aspect_ratio');
+	$arw = max(1, (int)($ar[0] ?? 1));
+	$arh = max(1, (int)($ar[1] ?? 1));
+
 	$sql = "SELECT
-        n.notebook_id AS id,
-        n.title,                 -- renamed from name
-        n.subtitle,
-        n.description,
-        n.color_bg,
-        n.color_text,
-        COALESCE(n.pages, ?) AS pages,
-        COALESCE(
-            (
-                SELECT CONCAT(
-                    '[',
-                    GROUP_CONCAT(
-                        JSON_OBJECT(
-                            'id', s.section_id,
-                            'label', s.label,
-                            'position', s.`position`
-                        )
-                        ORDER BY s.`position`
-                        SEPARATOR ','
-                    ),
-                    ']'
-                )
-                FROM sections s
-                WHERE s.notebook_id = n.notebook_id
-            ),
-            JSON_ARRAY()
-        ) AS sections
-    FROM notebooks n
-    ORDER BY n.notebook_id";
-	
+		n.notebook_id AS id,
+		n.title,                 -- renamed from name
+		n.subtitle,
+		n.description,
+		n.color_bg,
+		n.color_text,
+		COALESCE(n.pages, ?) AS pages,
+		COALESCE(
+			(
+				SELECT CONCAT(
+					'[',
+					GROUP_CONCAT(
+						JSON_OBJECT(
+							'id', s.section_id,
+							'label', s.label,
+							'position', s.`position`
+						)
+						ORDER BY s.`position`
+						SEPARATOR ','
+					),
+					']'
+				)
+				FROM sections s
+				WHERE s.notebook_id = n.notebook_id
+			),
+			JSON_ARRAY()
+		) AS sections
+	FROM notebooks n
+	ORDER BY n.notebook_id";
+
 	$rows = $db->query($sql, [$fallback]);
 
-
-	// Decode JSON sections and coerce types
+	// Decode JSON sections, coerce types, and attach global aspect
 	foreach ($rows as &$nb) {
 		$nb['pages']    = (int) $nb['pages'];
 		$nb['sections'] = $nb['sections'] ? json_decode($nb['sections'], true) : [];
@@ -59,11 +63,14 @@ try {
 			}
 			unset($s);
 		}
+
+		// Attach global aspect (w/h) to each notebook
+		$nb['aspect'] = ['w' => $arw, 'h' => $arh];
 	}
 	unset($nb);
 
 	ApiResponse::success($rows, []);
-} catch (Throwable $e) {
+} catch (\Throwable $e) {
 	error_log("[notebooks/config] " . $e->getMessage());
 	ApiResponse::error("Failed to load notebook data");
 }
