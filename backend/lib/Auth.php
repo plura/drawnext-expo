@@ -47,4 +47,28 @@ class Auth {
 		// TODO: Implement proper validation
 		return false;
 	}
+
+    public static function requireAdmin(Database $db): void {
+            self::init();
+            $email = $_SESSION['user_email'] ?? null;
+
+            if (!$email) {
+                ApiResponse::error('Not authenticated', 401);
+            }
+
+            $row = $db->querySingle('SELECT is_admin FROM users WHERE email = ?', [$email]);
+            if (!$row || (int)($row['is_admin'] ?? 0) !== 1) {
+                ApiResponse::error('Forbidden', 403);
+            }
+        }
+
+        public static function isAdmin(Database $db): bool {
+            self::init();
+            $email = $_SESSION['user_email'] ?? null;
+            if (!$email) return false;
+            $row = $db->querySingle('SELECT is_admin FROM users WHERE email = ?', [$email]);
+            return (bool)((int)($row['is_admin'] ?? 0) === 1);
+        }
+
+
 }

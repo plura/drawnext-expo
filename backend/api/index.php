@@ -25,6 +25,11 @@ $routes = [
   'drawings/create'  => __DIR__ . '/drawings/create.php',
   'drawings/list'    => __DIR__ . '/drawings/list.php',
   'drawings/validate'=> __DIR__ . '/drawings/validate.php',
+
+  'auth/login'       => __DIR__ . '/auth/login.php',
+	'auth/logout'      => __DIR__ . '/auth/logout.php',
+	'admin/me'         => __DIR__ . '/admin/me.php',
+  'admin/ping'       => __DIR__ . '/admin/ping.php',
   // 'drawings/view'  => __DIR__ . '/drawings/view.php', // (add when ready)
 ];
 

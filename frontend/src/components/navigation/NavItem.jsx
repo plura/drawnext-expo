@@ -1,14 +1,24 @@
 // src/components/navigation/NavItem.jsx
 import { NavLink } from "react-router-dom"
+import { cn } from "@/lib/utils"
 
-export default function NavItem({ to, children }) {
+export default function NavItem({
+	to,
+	children,
+	className,
+	activeClassName,
+	end = false,
+}) {
 	return (
 		<NavLink
 			to={to}
+			end={end}
 			className={({ isActive }) =>
-				`rounded-md px-3 py-1.5 hover:bg-gray-100 ${
-					isActive ? "bg-gray-200 font-medium" : ""
-				}`
+				cn(
+					"rounded-md px-3 py-1.5 hover:bg-gray-100",
+					className,
+					isActive && cn("bg-gray-200 font-medium", activeClassName)
+				)
 			}
 		>
 			{children}
