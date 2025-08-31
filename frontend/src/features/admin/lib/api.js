@@ -1,67 +1,67 @@
 // src/features/admin/lib/api.js
 /**
- * Admin API helpers (frontend)
+ * Admin API helpers
  * ---------------------------------------
- * Wraps fetch() with consistent JSON parsing + errors
- * and exposes typed helpers for the admin endpoints we
- * have right now:
- *
- * - POST /api/auth/login     -> login({ email })
- * - POST /api/auth/logout    -> logout()
- * - GET  /api/admin/me       -> getSession()  (checks is_admin + who)
- * - GET  /api/drawings/list  -> listDrawings(params)
- * - POST /api/drawings/validate -> validateSlots(payload)
- *
- * All requests include credentials for PHP sessions.
+ * - All requests include credentials for PHP sessions.
+ * - Responses are normalized via fetchJson (throws on non-OK / {status:"error"}).
  */
 
+/** Low-level JSON fetch helper (throws Error with .status and .details) */
 async function fetchJson(url, options = {}) {
-	const res = await fetch(url, {
-		credentials: "include", // keep PHP session cookies
-		...options,
-		headers: {
-			"Accept": "application/json",
-			...(options.headers || {}),
-		},
-	});
-	let json = null;
-	try {
-		json = await res.json();
-	} catch {
-		// ignore parse error; throw unified error below
-	}
-	if (!res.ok || json?.status === "error") {
-		const message = json?.message || `Request failed (${res.status})`;
-		const error = new Error(message);
-		error.status = res.status;
-		error.details = json?.details || null;
-		throw error;
-	}
-	return json; // usually { status:'success', data, meta? }
+  const res = await fetch(url, {
+    credentials: "include", // keep PHP session cookies
+    ...options,
+    headers: {
+      Accept: "application/json",
+      ...(options.headers || {}),
+    },
+  });
+
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+    // ignore parse error; throw unified error below
+  }
+
+  if (!res.ok || json?.status === "error") {
+    const message = json?.message || `Request failed (${res.status})`;
+    const error = new Error(message);
+    error.status = res.status;
+    error.details = json?.details || null;
+    throw error;
+  }
+
+  // Typically { status:'success', data, meta? }
+  return json;
 }
+
+/* ============================================================================
+ * AUTH & SESSION
+ * ========================================================================== */
 
 /** POST /api/auth/login { email } */
 export async function login(email) {
-	return fetchJson("/api/auth/login", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ email }),
-	});
+  return fetchJson("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
 }
 
 /** POST /api/auth/logout */
 export async function logout() {
-	return fetchJson("/api/auth/logout", { method: "POST" });
+  return fetchJson("/api/auth/logout", { method: "POST" });
 }
 
-/**
- * GET /api/admin/me
- * Returns:
- *   { status:'success', data: { is_admin:boolean, email:string|null } }
- */
+/** GET /api/admin/me -> { email, is_admin } */
 export async function getSession() {
-	return fetchJson("/api/admin/me");
+  return fetchJson("/api/admin/me");
 }
+
+/* ============================================================================
+ * DRAWINGS
+ * ========================================================================== */
 
 /**
  * GET /api/drawings/list
@@ -74,44 +74,81 @@ export async function getSession() {
  * @param {string[]} [params.expand] e.g. ['labels','thumb','user','neighbors']
  */
 export async function listDrawings(params = {}) {
-	const {
-		limit = 24,
-		offset = 0,
-		notebook_id,
-		section_id,
-		page,
-		expand,
-	} = params;
+  const {
+    limit = 24,
+    offset = 0,
+    notebook_id,
+    section_id,
+    page,
+    expand,
+  } = params;
 
-	const qs = new URLSearchParams();
-	qs.set("limit", String(limit));
-	qs.set("offset", String(offset));
-	if (notebook_id != null) qs.set("notebook_id", String(notebook_id));
-	if (section_id != null) qs.set("section_id", String(section_id));
-	if (page != null) qs.set("page", String(page));
-	if (Array.isArray(expand) && expand.length) {
-		qs.set("expand", expand.join(","));
-	}
+  const qs = new URLSearchParams();
+  qs.set("limit", String(limit));
+  qs.set("offset", String(offset));
+  if (notebook_id != null) qs.set("notebook_id", String(notebook_id));
+  if (section_id != null) qs.set("section_id", String(section_id));
+  if (page != null) qs.set("page", String(page));
+  if (Array.isArray(expand) && expand.length) {
+    qs.set("expand", expand.join(","));
+  }
 
-	return fetchJson(`/api/drawings/list?${qs.toString()}`);
+  return fetchJson(`/api/drawings/list?${qs.toString()}`);
 }
 
 /**
  * POST /api/drawings/validate
- * Validates a proposed slot and optional neighbor existence.
- *
- * Payload:
- * {
- *   notebook_id:number,
- *   section_id:number,
- *   page:number,
- *   neighbors?: [{ section_id:number, page:number }]
- * }
+ * @param {{ notebook_id:number, section_id:number, page:number, neighbors?: {section_id:number,page:number}[] }} payload
  */
 export async function validateSlots(payload) {
-	return fetchJson("/api/drawings/validate", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(payload),
-	});
+  return fetchJson("/api/drawings/validate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * POST /api/admin/drawings/update
+ * @param {{ drawing_id:number, notebook_id:number, section_id:number, page:number, neighbors?: {section_id:number,page:number}[] }} payload
+ */
+export async function updateDrawing(payload) {
+  return fetchJson("/api/admin/drawings/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * POST /api/admin/drawings/delete
+ * @param {number} drawing_id
+ */
+export async function deleteDrawing(drawing_id) {
+  return fetchJson("/api/admin/drawings/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ drawing_id }),
+  });
+}
+
+/* ============================================================================
+ * USERS (placeholder: wire when endpoints exist)
+ * ========================================================================== */
+
+/** GET /api/admin/users/list?limit=&offset=&q= */
+export async function listUsers(params = {}) {
+  const { limit = 24, offset = 0, q } = params;
+  const qs = new URLSearchParams();
+  qs.set("limit", String(limit));
+  qs.set("offset", String(offset));
+  if (q) qs.set("q", String(q));
+  return fetchJson(`/api/admin/users/list?${qs.toString()}`);
+}
+
+/** GET /api/admin/users/view?id=123 */
+export async function getUser(id) {
+  const qs = new URLSearchParams();
+  qs.set("id", String(id));
+  return fetchJson(`/api/admin/users/view?${qs.toString()}`);
 }

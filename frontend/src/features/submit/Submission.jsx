@@ -248,11 +248,11 @@ export default function Submission() {
           </AppAlert>
         )}
 
-  {/*       {import.meta.env.DEV && (
+      {import.meta.env.DEV && (
           <pre className="fixed bottom-2 left-2 max-h-56 w-80 overflow-auto rounded-md border bg-white/90 p-2 text-[11px]">
             {JSON.stringify(state, null, 2)}
           </pre>
-        )} */}
+        )} 
       </div>
     </div>
   );

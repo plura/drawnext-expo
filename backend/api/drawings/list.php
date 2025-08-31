@@ -1,5 +1,5 @@
 <?php
-// backend/api/drawings/list.php (enhanced, backward compatible)
+// api/drawings/list.php (enhanced, backward compatible)
 // - Filters: notebook_id, section_id, page
 // - Pagination: limit (1..50), offset (>=0)
 // - Expansions via `expand` (CSV):

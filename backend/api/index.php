@@ -21,16 +21,23 @@ $key   = ($seg1 && $seg2) ? ($seg1 . '/' . $seg2) : ($seg1 ?: '');
 
 // 3) Static whitelist (keeps things explicit & safe)
 $routes = [
-  'notebooks/config' => __DIR__ . '/notebooks/config.php',
-  'drawings/create'  => __DIR__ . '/drawings/create.php',
-  'drawings/list'    => __DIR__ . '/drawings/list.php',
-  'drawings/validate'=> __DIR__ . '/drawings/validate.php',
+	'notebooks/config' 		=> __DIR__ . '/notebooks/config.php',
+	'drawings/create'  		=> __DIR__ . '/drawings/create.php',
+	'drawings/list'    		=> __DIR__ . '/drawings/list.php',
+	'drawings/validate' 	=> __DIR__ . '/drawings/validate.php',
 
-  'auth/login'       => __DIR__ . '/auth/login.php',
-	'auth/logout'      => __DIR__ . '/auth/logout.php',
-	'admin/me'         => __DIR__ . '/admin/me.php',
-  'admin/ping'       => __DIR__ . '/admin/ping.php',
-  // 'drawings/view'  => __DIR__ . '/drawings/view.php', // (add when ready)
+	'auth/login'       		=> __DIR__ . '/auth/login.php',
+	'auth/logout'      		=> __DIR__ . '/auth/logout.php',
+	'admin/me'        		=> __DIR__ . '/admin/me.php',
+	'admin/ping'       		=> __DIR__ . '/admin/ping.php',
+
+	'admin/drawings/view'   => __DIR__ . '/admin/drawings/view.php',
+	'admin/drawings/update' => __DIR__ . '/admin/drawings/update.php',
+	'admin/drawings/delete' => __DIR__ . '/admin/drawings/delete.php',
+	'admin/users/list' 		=> __DIR__ . '/admin/users/list.php',
+	'admin/users/view' 		=> __DIR__ . '/admin/users/view.php',
+
+	// 'drawings/view'  => __DIR__ . '/drawings/view.php', // (add when ready)
 ];
 
 // 4) Special cases for nicer REST-ish URLs
@@ -38,34 +45,34 @@ $routes = [
 // - /api/drawings/123       -> view?id=123 (future)
 // These run before the static whitelist.
 if ($seg1 === 'drawings') {
-  // /api/drawings  (no second segment): list
-  if ($seg2 === '' || $seg2 === null) {
-    require __DIR__ . '/drawings/list.php';
-    exit;
-  }
+	// /api/drawings  (no second segment): list
+	if ($seg2 === '' || $seg2 === null) {
+		require __DIR__ . '/drawings/list.php';
+		exit;
+	}
 
-  // /api/drawings/{id} (numeric): view?id={id}
-  if (ctype_digit($seg2)) {
-    // Only dispatch if view.php exists (keeps router robust if not added yet)
-    $viewPath = __DIR__ . '/drawings/view.php';
-    if (is_file($viewPath)) {
-      $_GET['id'] = (int)$seg2;
-      require $viewPath;
-      exit;
-    }
-  }
+	// /api/drawings/{id} (numeric): view?id={id}
+	if (ctype_digit($seg2)) {
+		// Only dispatch if view.php exists (keeps router robust if not added yet)
+		$viewPath = __DIR__ . '/drawings/view.php';
+		if (is_file($viewPath)) {
+			$_GET['id'] = (int)$seg2;
+			require $viewPath;
+			exit;
+		}
+	}
 }
 
 // 5) Normal dispatch via whitelist
 if ($key && isset($routes[$key]) && is_file($routes[$key])) {
-  require $routes[$key];
-  exit;
+	require $routes[$key];
+	exit;
 }
 
 // 6) 404 JSON response
 http_response_code(404);
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode([
-  'status'  => 'error',
-  'message' => 'API endpoint not found',
+	'status'  => 'error',
+	'message' => 'API endpoint not found',
 ]);

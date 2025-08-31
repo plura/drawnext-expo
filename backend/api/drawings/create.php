@@ -1,5 +1,5 @@
 <?php
-// backend/api/drawings/create.php
+//api/drawings/create.php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../bootstrap.php';
@@ -51,30 +51,27 @@ try {
     );
 
     // 4) Validate Slot Availability (app-side check; also add DB unique index)
-    if (Drawing::isSlotTaken(
+    Drawing::validateSlotOrThrow(
         $deps['db'],
         (int)$drawingData['notebook_id'],
         (int)$drawingData['section_id'],
         (int)$drawingData['page']
-    )) {
-        ApiResponse::conflict("Drawing slot already taken");
-    }
-
+    );
+    
     // 5) Create Drawing (includes file handling & neighbor saves in a transaction)
     $drawing = new Drawing($deps['db']);
     $drawing->create(
         userId: $userId,
         notebookId: Validation::notebook((int)$drawingData['notebook_id'], $deps['db']),
-        sectionId:  Validation::section((int)$drawingData['section_id'], (int)$drawingData['notebook_id'], $deps['db']),
-        page:       Validation::page((int)$drawingData['page'], (int)$drawingData['notebook_id'], $deps['db']),
+        sectionId: Validation::section((int)$drawingData['section_id'], (int)$drawingData['notebook_id'], $deps['db']),
+        page: Validation::page((int)$drawingData['page'], (int)$drawingData['notebook_id'], $deps['db']),
         uploadedFile: $request['files']['drawing'] ?? null,    // legacy single-shot path
-        neighbors:    $neighbors,
-        isTest:       (bool)Env::get('TEST_MODE', false),
-        uploadToken:  $uploadToken                             // two-phase path (optional)
+        neighbors: $neighbors,
+        isTest: (bool)Env::get('TEST_MODE', false),
+        uploadToken: $uploadToken                             // two-phase path (optional)
     );
 
     ApiResponse::success($drawing->toApiResponse());
-
 } catch (\InvalidArgumentException $e) {
     // Validation-style issues (bad format, invalid notebook/section/page, etc.)
     ApiResponse::validationError(['error' => $e->getMessage()]);

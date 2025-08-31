@@ -2,12 +2,12 @@
 /**
  * Admin → Dashboard
  * -----------------
- * Lightweight landing page for admins. Keeps it simple for now:
- * - Greets the user
- * - Provides quick links into common admin flows
- * You can later evolve this with stats once you add admin endpoints for counts.
+ * Landing page with quick links into admin flows.
+ * Uses your Card component for consistent styling.
  */
+
 import { Link } from "react-router-dom";
+import Card from "@/components/cards/Card";
 
 export default function Dashboard() {
 	return (
@@ -18,17 +18,23 @@ export default function Dashboard() {
 			</p>
 
 			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				<Link
-					to="/admin/drawings"
-					className="rounded-lg border bg-white p-3 hover:bg-gray-50"
-				>
-					<div className="text-base font-medium">Manage Drawings</div>
-					<p className="text-xs text-muted-foreground">
-						Browse, filter, and edit drawing submissions.
-					</p>
+				<Link to="/admin/drawings">
+					<Card className="hover:bg-gray-50 transition-colors">
+						<div className="text-base font-medium">Manage Drawings</div>
+						<p className="text-xs text-muted-foreground">
+							Browse, filter, and edit drawing submissions.
+						</p>
+					</Card>
 				</Link>
 
-				{/* Future: add Users, Notebooks, Sections, etc. */}
+				<Link to="/admin/users">
+					<Card className="hover:bg-gray-50 transition-colors">
+						<div className="text-base font-medium">Manage Users</div>
+						<p className="text-xs text-muted-foreground">
+							View and manage registered user accounts.
+						</p>
+					</Card>
+				</Link>
 			</div>
 		</div>
 	);
