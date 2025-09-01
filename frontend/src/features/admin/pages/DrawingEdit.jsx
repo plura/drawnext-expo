@@ -284,14 +284,16 @@ export default function DrawingEdit() {
             </p>
           ) : (
             <Sections
-              sections={sections}
+              sections={sections} 
+              notebookId={Number(notebook.id)} 
               primarySectionId={primarySectionId}
               page={page}
               neighborPages={neighborPages}
               maxPages={maxPages}
               onSelectPrimary={handleSelectPrimary}
               onChangePrimaryPage={handleChangePrimaryPage}
-              onChangeNeighborPage={handleChangeNeighborPage}
+              onChangeNeighborPage={handleChangeNeighborPage} 
+              excludeDrawingId={Number(id)} 
             />
           )}
         </Card>

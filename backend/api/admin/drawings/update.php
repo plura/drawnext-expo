@@ -5,8 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../../bootstrap.php';
 
 use Lib\ApiResponse;
-use Lib\Validation;
 use Lib\Drawing;
+use Lib\Validation;
 
 function http_status_from_exception(\Throwable $e): int {
     if ($e instanceof \PDOException) {
@@ -75,6 +75,7 @@ try {
     ApiResponse::success([
         'drawing_id' => $drawingId,
         'updated'    => true,
+        'neighbors'  => $neighbors
     ]);
 
 } catch (\InvalidArgumentException $e) {

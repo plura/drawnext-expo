@@ -26,7 +26,7 @@ try {
 
     // Fetch
     $u = $db->querySingle(
-        "SELECT user_id, email, is_admin, test, created_at, modified_at
+        "SELECT user_id, email, is_admin, test, created_at, updated_at
          FROM users WHERE user_id = ?",
         [$id]
     );
@@ -47,7 +47,7 @@ try {
         'is_admin'    => (int)$u['is_admin'] === 1,
         'test'        => (int)($u['test'] ?? 0) === 1,
         'created_at'  => (string)$u['created_at'],
-        'modified_at' => $u['modified_at'] ?? null,
+        'updated_at'  => (string)$u['updated_at'],
         'submissions' => $submissions,
     ]);
 

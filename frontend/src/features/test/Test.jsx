@@ -18,7 +18,7 @@ export default function Test() {
         setError(null);
         // Include labels + thumb for richer UI
         const res = await fetch("/api/drawings/list?limit=20&expand=user,neighbors,labels,thumb");
-        const json = await res.json();
+        const json = await res.json(); console.log(json);
         if (!res.ok || json?.status === "error") {
           throw new Error(json?.message || `Request failed (${res.status})`);
         }

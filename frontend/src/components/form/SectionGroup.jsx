@@ -1,25 +1,15 @@
 // src/components/form/SectionGroup.jsx
-// Minimal, commented version used by Submit's SectionAndPagesStep.
-// Keeps native <select> elements (no shadcn Select yet) and identical prop API.
+import { cn } from "@/lib/utils";
+import { useSlotProbe } from "@/components/form/hooks/useSlotProbe";
+import StatusHint from "@/components/feedback/StatusHint";
 
 /**
- * Props (unchanged):
- * - section:      { id, ... } the section object
- * - label:        string label to show (e.g., "1 – Space")
- * - isPrimary:    boolean | undefined
- *                  • true  → this row is the chosen primary section
- *                  • false → this row is a neighbor section
- *                  • undefined → no section chosen yet (all rows look neutral, but still selectable)
- * - maxPages:     number total pages in the notebook
- * - primaryPage:  string|number current primary page (only used when isPrimary === true)
- * - neighborPage: string|number current neighbor page (only used when isPrimary === false)
- * - onSelectPrimary(sectionId)
- * - onChangePrimaryPage(nextPageNumber)
- * - onChangeNeighborPage(nextPageNumber)
+ * Added props:
+ * - notebookId: number              // required for probing
+ * - primarySectionId?: number|null  // required to probe neighbor rows
+ * - probeEnabled?: boolean          // default true
+ * - excludeDrawingId?: number       // optional, ignore this drawing in primary probe
  */
-
-import { cn } from "@/lib/utils";
-
 export default function SectionGroup({
   section,
   label,
@@ -30,25 +20,110 @@ export default function SectionGroup({
   onSelectPrimary,
   onChangePrimaryPage,
   onChangeNeighborPage,
+  notebookId,
+  primarySectionId = null,
+  probeEnabled = true,
+  excludeDrawingId, // NEW
 }) {
-  // Clicking anywhere on the container selects this section as primary,
-  // except when the click originated inside the controls column
-  // (we mark that column with [data-no-select='true'] so it doesn't toggle).
   function handleContainerClick(e) {
     if (e.target.closest("[data-no-select='true']")) return;
     onSelectPrimary?.(section.id);
   }
 
-  // Build page options [1..maxPages] once per render
-  const pageOptions = Array.from({ length: maxPages }, (_, i) => i + 1);
-
+  const pageCount = Number(maxPages) > 0 ? Number(maxPages) : 0;
+  const pageOptions = pageCount
+    ? Array.from({ length: pageCount }, (_, i) => i + 1)
+    : [];
   const selectable = typeof isPrimary === "boolean";
   const active = !!isPrimary;
+
+  // --- probing (soft, contextual) ---
+  const probeParams = active
+    ? {
+        mode: "primary",
+        notebookId,
+        sectionId: section.id,
+        page: Number(primaryPage || 0),
+        enabled: probeEnabled,
+        excludeDrawingId, // NEW
+      }
+    : {
+        mode: "neighbor",
+        notebookId,
+        primarySectionId,
+        sectionId: section.id,
+        page: Number(neighborPage || 0),
+        enabled: probeEnabled,
+      };
+
+  const {
+    loading: probing,
+    result: probe,
+    error: probeError,
+  } = useSlotProbe(probeParams);
+
+  // decide small line hint per mode
+  let hint = null;
+  let variant = "neutral";
+  if (probeEnabled && selectable) {
+    if (active) {
+      const taken = !!probe?.primary?.taken;
+      const takenBySelf = !!probe?.primary?.taken_by_self;
+      console.log({probe, excludeDrawingId})
+      if (Number(primaryPage) > 0) {
+        if (probeError) {
+          hint = "Couldn’t verify this slot.";
+          variant = "warning";
+        } else if (takenBySelf) {
+          hint = "Current drawing slot.";
+          variant = "neutral";
+        } else {
+          hint = taken
+            ? "This slot already has a drawing."
+            : "This slot is free.";
+          variant = taken ? "error" : "success";
+        }
+      }
+    } else {
+      if (Number(neighborPage) > 0) {
+        const warns = probe?.neighbors?.warnings || [];
+        const notFound = warns.some(
+          (w) =>
+            w.code === "neighbor_not_found" &&
+            Number(w.section_id) === Number(section.id) &&
+            Number(w.page) === Number(neighborPage)
+        );
+        const invalid = warns.some(
+          (w) =>
+            w.code === "invalid_neighbor" &&
+            Number(w.section_id) === Number(section.id)
+        );
+        const sameAsPrimary = warns.some(
+          (w) =>
+            w.code === "neighbor_cannot_be_primary_section" &&
+            Number(w.section_id) === Number(section.id)
+        );
+
+        if (notFound) {
+          hint = "No drawing found at that neighbor slot.";
+          variant = "error";
+        } else if (invalid) {
+          hint = "Invalid neighbor page for this section.";
+          variant = "error";
+        } else if (sameAsPrimary) {
+          hint = "Cannot use the primary section as a neighbor.";
+          variant = "warning";
+        } else if (probeError) {
+          hint = "Couldn’t verify this neighbor.";
+          variant = "warning";
+        }
+      }
+    }
+  }
 
   return (
     <div
       onClick={handleContainerClick}
-      // Visual + semantic feedback:
       aria-pressed={selectable ? active : undefined}
       className={cn(
         "flex items-center gap-3 rounded-xl border p-3 transition cursor-pointer",
@@ -72,14 +147,22 @@ export default function SectionGroup({
               : "Tap to select this as your section"
             : "Tap to select this as your section"}
         </p>
+
+        {/* contextual probe hint */}
+        {hint && (
+          <StatusHint
+            variant={probing ? "loading" : variant}
+            className="mt-1"
+          >
+            {probing ? "Checking…" : hint}
+          </StatusHint>
+        )}
       </div>
 
-      {/* Right: page controls
-          Only rendered when we know if this row is primary or neighbor (selectable=true). */}
+      {/* Right controls */}
       {selectable && (
         <div className="flex flex-col items-end gap-1" data-no-select="true">
           {active ? (
-            /* Primary: show "Your page" select */
             <>
               <label
                 htmlFor={`page-primary-${section.id}`}
@@ -108,7 +191,6 @@ export default function SectionGroup({
               </select>
             </>
           ) : (
-            /* Neighbor: show optional neighbor page select */
             <>
               <label
                 htmlFor={`page-neighbor-${section.id}`}

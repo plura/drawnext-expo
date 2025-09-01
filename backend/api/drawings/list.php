@@ -1,13 +1,13 @@
 <?php
-// api/drawings/list.php (enhanced, backward compatible)
-// - Filters: notebook_id, section_id, page
-// - Pagination: limit (1..50), offset (>=0)
-// - Expansions via `expand` (CSV):
-//     user       → include user_email
-//     neighbors  → include neighbors: [{ section_id, page }]
-//     labels     → include section_label for main drawing + neighbors
-//     meta       → include image meta: {width, height, mime, filesize}
-//     thumb      → include thumb_url when a WebP thumb exists
+// api/drawings/list.php
+// Filters: notebook_id, section_id, page
+// Pagination: limit (1..50), offset (>=0)
+// Expansions via `expand` (CSV):
+//   user       → include user_email (main + neighbors)
+//   neighbors  → include neighbors array
+//   labels     → include section_label (main + neighbors)
+//   meta       → include image meta on main drawing
+//   thumb      → include thumb_url (main + neighbors when a WebP thumb exists)
 
 declare(strict_types=1);
 
@@ -60,6 +60,8 @@ try {
         'd.page',
         'd.created_at',
         'f.stored_filename',
+        // always provide section_position for MAIN row
+        's_main.position AS section_position',
     ];
 
     if ($wantMeta) {
@@ -68,17 +70,19 @@ try {
         $select[] = 'f.mime_type';
         $select[] = 'f.filesize';
     }
+    if ($wantLabels) {
+        $select[] = 's_main.label AS section_label';
+    }
 
-    $joins = ['LEFT JOIN files f ON f.drawing_id = d.drawing_id'];
+    $joins = [
+        'LEFT JOIN files f ON f.drawing_id = d.drawing_id',
+        // join sections to expose section_position (and possibly label)
+        'LEFT JOIN sections s_main ON s_main.section_id = d.section_id',
+    ];
 
     if ($wantUser) {
         $select[] = 'u.email AS user_email';
         $joins[]  = 'INNER JOIN users u ON u.user_id = d.user_id';
-    }
-
-    if ($wantLabels) {
-        $select[] = 's_main.label AS section_label';
-        $joins[]  = 'LEFT JOIN sections s_main ON s_main.section_id = d.section_id';
     }
 
     $selectList = implode(',', $select);
@@ -101,15 +105,20 @@ LIMIT {$limit} OFFSET {$offset}";
     // Prepare base data
     $data = [];
     $ids  = [];
+    $mainNotebookById = []; // drawing_id => notebook_id (used by neighbors join strategy if needed)
 
     foreach ($rows as $r) {
+        $did = (int)$r['drawing_id'];
+        $nid = (int)$r['notebook_id'];
+
         $item = [
-            'drawing_id'  => (int)$r['drawing_id'],
-            'notebook_id' => (int)$r['notebook_id'],
-            'section_id'  => (int)$r['section_id'],
-            'page'        => (int)$r['page'],
-            'created_at'  => $r['created_at'],
-            'preview_url' => !empty($r['stored_filename']) ? $prefix . rawurlencode($r['stored_filename']) : null,
+            'drawing_id'       => $did,
+            'notebook_id'      => $nid,
+            'section_id'       => (int)$r['section_id'],
+            'section_position' => isset($r['section_position']) ? (int)$r['section_position'] : null,
+            'page'             => (int)$r['page'],
+            'created_at'       => $r['created_at'],
+            'preview_url'      => !empty($r['stored_filename']) ? $prefix . rawurlencode($r['stored_filename']) : null,
         ];
 
         if ($wantLabels) {
@@ -137,46 +146,78 @@ LIMIT {$limit} OFFSET {$offset}";
         }
 
         $data[] = $item;
-        $ids[]  = (int)$r['drawing_id'];
+        $ids[]  = $did;
+        $mainNotebookById[$did] = $nid;
     }
 
-    // Neighbors expansion (single query, no N+1)
+    // Neighbors expansion (single query, brings section_position + preview/thumb + optional user)
     if ($wantNeighbors && $ids) {
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
+        // Build conditional pieces for neighbor extras
+        $selectNei = [
+            'dn.drawing_id',
+            'dn.neighbor_section_id AS section_id',
+            'dn.neighbor_page AS page',
+            's.position AS section_position',
+            // neighbor file (for preview/thumb)
+            'nf.stored_filename AS neighbor_stored_filename',
+            'nd.drawing_id AS neighbor_drawing_id',
+        ];
+        $joinsNei = [
+            // join main drawing to get notebook_id → resolve neighbor drawing row
+            'INNER JOIN drawings d_main ON d_main.drawing_id = dn.drawing_id',
+            'INNER JOIN sections s ON s.section_id = dn.neighbor_section_id',
+            // find the actual neighbor drawing row in same notebook/slot
+            'LEFT JOIN drawings nd
+                 ON nd.notebook_id = d_main.notebook_id
+                AND nd.section_id  = dn.neighbor_section_id
+                AND nd.page        = dn.neighbor_page',
+            'LEFT JOIN files nf ON nf.drawing_id = nd.drawing_id',
+        ];
         if ($wantLabels) {
-            $neighbors = $db->query(
-                "SELECT dn.drawing_id,
-       dn.neighbor_section_id AS section_id,
-       s.label AS section_label,
-       dn.neighbor_page AS page
-FROM drawing_neighbors dn
-INNER JOIN sections s ON s.section_id = dn.neighbor_section_id
-WHERE dn.drawing_id IN ({$placeholders})",
-                $ids
-            );
-        } else {
-            $neighbors = $db->query(
-                "SELECT drawing_id,
-       neighbor_section_id AS section_id,
-       neighbor_page AS page
-FROM drawing_neighbors
-WHERE drawing_id IN ({$placeholders})",
-                $ids
-            );
+            $selectNei[] = 's.label AS section_label';
         }
+        if ($wantUser) {
+            $selectNei[] = 'u.email AS user_email';
+            $joinsNei[]  = 'LEFT JOIN users u ON u.user_id = nd.user_id';
+        }
+
+        $neiSql = "SELECT " . implode(',', $selectNei) . "
+            FROM drawing_neighbors dn
+            " . implode("\n", $joinsNei) . "
+            WHERE dn.drawing_id IN ({$placeholders})";
+
+        $neighbors = $db->query($neiSql, $ids);
 
         $map = [];
         foreach ($neighbors as $n) {
             $did = (int)$n['drawing_id'];
             if (!isset($map[$did])) $map[$did] = [];
+
             $entry = [
-                'section_id' => (int)$n['section_id'],
-                'page'       => (int)$n['page'],
+                'drawing_id'       => isset($n['neighbor_drawing_id']) ? (int)$n['neighbor_drawing_id'] : null,
+                'section_id'       => (int)$n['section_id'],
+                'section_position' => isset($n['section_position']) ? (int)$n['section_position'] : null,
+                'page'             => (int)$n['page'],
+                // preview_url for neighbor (always when file exists)
+                'preview_url'      => !empty($n['neighbor_stored_filename'])
+                    ? $prefix . rawurlencode($n['neighbor_stored_filename'])
+                    : null,
             ];
             if ($wantLabels) {
                 $entry['section_label'] = $n['section_label'] ?? null;
             }
+            if ($wantUser) {
+                $entry['user_email'] = $n['user_email'] ?? null;
+            }
+            if ($wantThumb && !empty($n['neighbor_stored_filename']) && preg_match('/__display\\.webp$/i', $n['neighbor_stored_filename'])) {
+                $thumb = preg_replace('/__display\\.webp$/i', '__thumb.webp', $n['neighbor_stored_filename']);
+                $entry['thumb_url'] = $prefix . rawurlencode($thumb);
+            } else {
+                $entry['thumb_url'] = null;
+            }
+
             $map[$did][] = $entry;
         }
 

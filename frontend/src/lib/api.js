@@ -30,3 +30,40 @@ export async function uploadTempImage(file) {
 
 	return json; // { status:'success', data: { token, width, height, hash } }
 }
+
+
+// Probe a prospective slot + neighbors (lightweight, non-authoritative)
+export async function probeSlot(payload, fetchOpts = {}) { console.log('call started');
+  const res = await fetch('/api/drawings/probe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    // include cookies if your PHP session is cookie-based:
+    credentials: 'include',
+    body: JSON.stringify(payload),
+    ...fetchOpts, // lets us pass { signal }
+  }); console.log('call finished');
+
+  let json = {};
+  try { json = await res.json(); } catch {}
+
+  if (!res.ok || json?.status === 'error') {
+    const msg = json?.message || `Probe failed (HTTP ${res.status})`;
+    throw Object.assign(new Error(msg), { name: 'ProbeHttpError' });
+  }
+  return json; // { status:'success', data:{ primary?, neighbors? } }
+}
+
+
+
+//to use with DynamicGallery
+export async function listDrawingsWithNeighbors({ limit=50, offset=0 } = {}) {
+  const qs = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    expand: "thumb,labels,neighbors", // neighbors include section_id, page (+ labels if your backend supports)
+  });
+  const res = await fetch(`/api/drawings/list?${qs.toString()}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.status === "error") throw new Error(json?.message || "Fetch failed");
+  return { items: Array.isArray(json?.data) ? json.data : [], meta: json?.meta || {} };
+}

@@ -1,0 +1,412 @@
+{
+  "status": "success",
+  "data": [
+    {
+      "drawing_id": 1,
+      "notebook_id": 1,
+      "section_id": 21,
+      "section_label": "Intro",
+      "section_position": 1,
+      "page": 1,
+      "created_at": "2025-08-30 12:00:00",
+      "preview_url": "https://picsum.photos/seed/drawing-1/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-1/400/400.webp",
+      "user_email": "alice@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 184321
+      },
+      "neighbors": [
+        {
+          "drawing_id": 101,
+          "section_id": 22,
+          "section_label": "Methods",
+          "section_position": 2,
+          "page": 1,
+          "preview_url": "https://picsum.photos/seed/drawing-101/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-101/400/400.webp",
+          "user_email": "bob@example.com"
+        },
+        {
+          "drawing_id": 102,
+          "section_id": 23,
+          "section_label": "Results",
+          "section_position": 3,
+          "page": 2,
+          "preview_url": "https://picsum.photos/seed/drawing-102/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-102/400/400.webp",
+          "user_email": "carol@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 2,
+      "notebook_id": 2,
+      "section_id": 22,
+      "section_label": "Methods",
+      "section_position": 2,
+      "page": 2,
+      "created_at": "2025-08-30 12:05:00",
+      "preview_url": "https://picsum.photos/seed/drawing-2/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-2/400/400.webp",
+      "user_email": "bob@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 175902
+      },
+      "neighbors": [
+        {
+          "drawing_id": 103,
+          "section_id": 21,
+          "section_label": "Intro",
+          "section_position": 1,
+          "page": 3,
+          "preview_url": "https://picsum.photos/seed/drawing-103/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-103/400/400.webp",
+          "user_email": "alice@example.com"
+        },
+        {
+          "drawing_id": 104,
+          "section_id": 24,
+          "section_label": "Discussion",
+          "section_position": 4,
+          "page": 1,
+          "preview_url": "https://picsum.photos/seed/drawing-104/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-104/400/400.webp",
+          "user_email": "dave@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 3,
+      "notebook_id": 3,
+      "section_id": 23,
+      "section_label": "Results",
+      "section_position": 3,
+      "page": 1,
+      "created_at": "2025-08-30 12:10:00",
+      "preview_url": "https://picsum.photos/seed/drawing-3/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-3/400/400.webp",
+      "user_email": "carol@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 199443
+      },
+      "neighbors": [
+        {
+          "drawing_id": 105,
+          "section_id": 22,
+          "section_label": "Methods",
+          "section_position": 2,
+          "page": 4,
+          "preview_url": "https://picsum.photos/seed/drawing-105/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-105/400/400.webp",
+          "user_email": "bob@example.com"
+        },
+        {
+          "drawing_id": 106,
+          "section_id": 24,
+          "section_label": "Discussion",
+          "section_position": 4,
+          "page": 2,
+          "preview_url": "https://picsum.photos/seed/drawing-106/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-106/400/400.webp",
+          "user_email": "dave@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 4,
+      "notebook_id": 4,
+      "section_id": 24,
+      "section_label": "Discussion",
+      "section_position": 4,
+      "page": 3,
+      "created_at": "2025-08-30 12:15:00",
+      "preview_url": "https://picsum.photos/seed/drawing-4/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-4/400/400.webp",
+      "user_email": "dave@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 162887
+      },
+      "neighbors": [
+        {
+          "drawing_id": 107,
+          "section_id": 23,
+          "section_label": "Results",
+          "section_position": 3,
+          "page": 5,
+          "preview_url": "https://picsum.photos/seed/drawing-107/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-107/400/400.webp",
+          "user_email": "carol@example.com"
+        },
+        {
+          "drawing_id": 108,
+          "section_id": 25,
+          "section_label": "Appendix",
+          "section_position": 5,
+          "page": 1,
+          "preview_url": "https://picsum.photos/seed/drawing-108/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-108/400/400.webp",
+          "user_email": "erin@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 5,
+      "notebook_id": 1,
+      "section_id": 25,
+      "section_label": "Appendix",
+      "section_position": 5,
+      "page": 1,
+      "created_at": "2025-08-30 12:20:00",
+      "preview_url": "https://picsum.photos/seed/drawing-5/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-5/400/400.webp",
+      "user_email": "erin@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 154002
+      },
+      "neighbors": [
+        {
+          "drawing_id": 109,
+          "section_id": 24,
+          "section_label": "Discussion",
+          "section_position": 4,
+          "page": 6,
+          "preview_url": "https://picsum.photos/seed/drawing-109/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-109/400/400.webp",
+          "user_email": "dave@example.com"
+        },
+        {
+          "drawing_id": 110,
+          "section_id": 26,
+          "section_label": "References",
+          "section_position": 6,
+          "page": 1,
+          "preview_url": "https://picsum.photos/seed/drawing-110/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-110/400/400.webp",
+          "user_email": "frank@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 6,
+      "notebook_id": 2,
+      "section_id": 26,
+      "section_label": "References",
+      "section_position": 6,
+      "page": 2,
+      "created_at": "2025-08-30 12:25:00",
+      "preview_url": "https://picsum.photos/seed/drawing-6/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-6/400/400.webp",
+      "user_email": "frank@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 201774
+      },
+      "neighbors": [
+        {
+          "drawing_id": 111,
+          "section_id": 25,
+          "section_label": "Appendix",
+          "section_position": 5,
+          "page": 2,
+          "preview_url": "https://picsum.photos/seed/drawing-111/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-111/400/400.webp",
+          "user_email": "erin@example.com"
+        },
+        {
+          "drawing_id": 112,
+          "section_id": 27,
+          "section_label": "Acknowledgments",
+          "section_position": 7,
+          "page": 1,
+          "preview_url": "https://picsum.photos/seed/drawing-112/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-112/400/400.webp",
+          "user_email": "grace@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 7,
+      "notebook_id": 3,
+      "section_id": 27,
+      "section_label": "Acknowledgments",
+      "section_position": 7,
+      "page": 1,
+      "created_at": "2025-08-30 12:30:00",
+      "preview_url": "https://picsum.photos/seed/drawing-7/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-7/400/400.webp",
+      "user_email": "grace@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 173665
+      },
+      "neighbors": [
+        {
+          "drawing_id": 113,
+          "section_id": 26,
+          "section_label": "References",
+          "section_position": 6,
+          "page": 3,
+          "preview_url": "https://picsum.photos/seed/drawing-113/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-113/400/400.webp",
+          "user_email": "frank@example.com"
+        },
+        {
+          "drawing_id": 114,
+          "section_id": 28,
+          "section_label": "Supplement",
+          "section_position": 8,
+          "page": 1,
+          "preview_url": "https://picsum.photos/seed/drawing-114/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-114/400/400.webp",
+          "user_email": "heidi@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 8,
+      "notebook_id": 4,
+      "section_id": 28,
+      "section_label": "Supplement",
+      "section_position": 8,
+      "page": 2,
+      "created_at": "2025-08-30 12:35:00",
+      "preview_url": "https://picsum.photos/seed/drawing-8/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-8/400/400.webp",
+      "user_email": "heidi@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 146998
+      },
+      "neighbors": [
+        {
+          "drawing_id": 115,
+          "section_id": 27,
+          "section_label": "Acknowledgments",
+          "section_position": 7,
+          "page": 4,
+          "preview_url": "https://picsum.photos/seed/drawing-115/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-115/400/400.webp",
+          "user_email": "grace@example.com"
+        },
+        {
+          "drawing_id": 116,
+          "section_id": 29,
+          "section_label": "Notes",
+          "section_position": 9,
+          "page": 1,
+          "preview_url": "https://picsum.photos/seed/drawing-116/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-116/400/400.webp",
+          "user_email": "ivan@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 9,
+      "notebook_id": 1,
+      "section_id": 29,
+      "section_label": "Notes",
+      "section_position": 9,
+      "page": 5,
+      "created_at": "2025-08-30 12:40:00",
+      "preview_url": "https://picsum.photos/seed/drawing-9/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-9/400/400.webp",
+      "user_email": "ivan@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 188245
+      },
+      "neighbors": [
+        {
+          "drawing_id": 117,
+          "section_id": 28,
+          "section_label": "Supplement",
+          "section_position": 8,
+          "page": 3,
+          "preview_url": "https://picsum.photos/seed/drawing-117/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-117/400/400.webp",
+          "user_email": "heidi@example.com"
+        },
+        {
+          "drawing_id": 118,
+          "section_id": 30,
+          "section_label": "Index",
+          "section_position": 10,
+          "page": 1,
+          "preview_url": "https://picsum.photos/seed/drawing-118/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-118/400/400.webp",
+          "user_email": "judy@example.com"
+        }
+      ]
+    },
+    {
+      "drawing_id": 10,
+      "notebook_id": 2,
+      "section_id": 30,
+      "section_label": "Index",
+      "section_position": 10,
+      "page": 1,
+      "created_at": "2025-08-30 12:45:00",
+      "preview_url": "https://picsum.photos/seed/drawing-10/1000/1000.webp",
+      "thumb_url": "https://picsum.photos/seed/drawing-10/400/400.webp",
+      "user_email": "judy@example.com",
+      "image": {
+        "width": 1000,
+        "height": 1000,
+        "mime": "image/webp",
+        "filesize": 143511
+      },
+      "neighbors": [
+        {
+          "drawing_id": 119,
+          "section_id": 29,
+          "section_label": "Notes",
+          "section_position": 9,
+          "page": 2,
+          "preview_url": "https://picsum.photos/seed/drawing-119/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-119/400/400.webp",
+          "user_email": "ivan@example.com"
+        },
+        {
+          "drawing_id": 120,
+          "section_id": 21,
+          "section_label": "Intro",
+          "section_position": 1,
+          "page": 6,
+          "preview_url": "https://picsum.photos/seed/drawing-120/1000/1000.webp",
+          "thumb_url": "https://picsum.photos/seed/drawing-120/400/400.webp",
+          "user_email": "alice@example.com"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "limit": 10,
+    "offset": 0,
+    "count": 10,
+    "next_offset": 10,
+    "has_more": true
+  }
+}

@@ -1,5 +1,5 @@
 // src/features/admin/pages/UsersList.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,13 @@ import { listUsers } from "@/features/admin/lib/api";
 import { Badge } from "@/components/ui/badge";
 
 const PAGE_SIZE = 24;
+
+// helper: name only; blank if none
+function displayName(u) {
+  const fn = (u.first_name || "").trim();
+  const ln = (u.last_name || "").trim();
+  return fn || ln ? [fn, ln].filter(Boolean).join(" ") : "";
+}
 
 export default function UsersList() {
   const [rows, setRows] = useState([]);
@@ -40,7 +47,6 @@ export default function UsersList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // refetch when search changes (basic behavior)
   useEffect(() => {
     const t = setTimeout(() => fetchPage(0), 300);
     return () => clearTimeout(t);
@@ -56,12 +62,14 @@ export default function UsersList() {
       {/* Filters */}
       <Card className="p-3">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[220px]">
-            <label className="block text-xs text-muted-foreground mb-1">Search email</label>
+          <div className="flex-1 min-w-[260px]">
+            <label className="block text-xs text-muted-foreground mb-1">
+              Search name or email
+            </label>
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="name@example.com"
+              placeholder="e.g. Sato / sato@example.com"
             />
           </div>
 
@@ -90,25 +98,40 @@ export default function UsersList() {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Email</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Admin</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Created</th>
-                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Actions</th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                  Name
+                </th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                  Email
+                </th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                  Admin
+                </th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                  Created
+                </th>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && !loading ? (
                 <tr>
-                  <td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={5}
+                    className="px-3 py-8 text-center text-muted-foreground"
+                  >
                     No users found.
                   </td>
                 </tr>
               ) : (
                 rows.map((u) => (
                   <tr key={u.user_id} className="border-t">
+                    <td className="px-3 py-2">{displayName(u)}</td>
                     <td className="px-3 py-2 break-all">{u.email}</td>
                     <td className="px-3 py-2">
-                      {Number(u.is_admin) === 1 ? (
+                      {u.is_admin ? (
                         <Badge variant="default">Admin</Badge>
                       ) : (
                         <Badge variant="secondary">User</Badge>

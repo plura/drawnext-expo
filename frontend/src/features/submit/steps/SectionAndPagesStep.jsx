@@ -55,7 +55,8 @@ export default function SectionAndPagesStep({ state, patch, notebooks }) {
 
   return (
     <Sections
-      sections={sections}
+      sections={sections} 
+      notebookId={Number(notebook.id)} 
       primarySectionId={primarySectionId}
       page={state.page}
       neighborPages={

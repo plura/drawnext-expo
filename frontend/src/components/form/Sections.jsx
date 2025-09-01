@@ -7,6 +7,7 @@ import SectionGroup from "@/components/form/SectionGroup";
  *
  * Props
  * - sections: Array<{ id, position, label? }>
+ * - notebookId: number
  * - primarySectionId: number|null
  * - page: string|number (primary page value)
  * - neighborPages: Record<sectionIdString, string>  // e.g. { "12": "4" }
@@ -15,9 +16,11 @@ import SectionGroup from "@/components/form/SectionGroup";
  * - onChangePrimaryPage(pageNum: number): void
  * - onChangeNeighborPage(sectionId: number, pageNum: number): void
  * - className?: string
+ * - excludeDrawingId?: number   // NEW, optional (used in admin edit)
  */
 export default function Sections({
   sections,
+  notebookId,
   primarySectionId,
   page,
   neighborPages,
@@ -26,6 +29,7 @@ export default function Sections({
   onChangePrimaryPage,
   onChangeNeighborPage,
   className = "space-y-3",
+  excludeDrawingId, // NEW
 }) {
   if (!Array.isArray(sections) || sections.length === 0) {
     return null;
@@ -56,6 +60,10 @@ export default function Sections({
             onSelectPrimary={onSelectPrimary}
             onChangePrimaryPage={onChangePrimaryPage}
             onChangeNeighborPage={(val) => onChangeNeighborPage(sec.id, val)}
+            notebookId={notebookId}
+            primarySectionId={primarySectionId}
+            probeEnabled={true}
+            excludeDrawingId={excludeDrawingId}   // NEW, threaded down
           />
         );
       })}

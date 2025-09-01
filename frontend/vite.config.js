@@ -36,7 +36,7 @@ export default defineConfig({
 					const rewritten = withoutApi.endsWith('.php')
 						? withoutApi
 						: `${withoutApi}.php`
-console.log('[vite proxy rewrite]', path, '=>', query ? `${rewritten}?${query}` : rewritten) // <— add
+
 					// 4) Re-attach the query string only if one exists
 					return query ? `${rewritten}?${query}` : rewritten
 				},

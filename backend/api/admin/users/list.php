@@ -27,11 +27,13 @@ try {
     $params = [];
 
     if ($q !== '') {
-        $where = 'WHERE u.email LIKE ?';
-        $params[] = '%'.$q.'%';
+        // Match email OR name parts
+        $where = 'WHERE (u.email LIKE ? OR u.first_name LIKE ? OR u.last_name LIKE ?)';
+        $like = '%'.$q.'%';
+        $params[] = $like; $params[] = $like; $params[] = $like;
     }
 
-    // Total (for has_more, optional)
+    // Total
     $countSql = "SELECT COUNT(*) AS c FROM users u {$where}";
     $total = (int)($db->querySingle($countSql, $params)['c'] ?? 0);
 
@@ -39,10 +41,12 @@ try {
     $sql = "SELECT
                 u.user_id,
                 u.email,
+                u.first_name,
+                u.last_name,
                 u.is_admin,
                 u.test,
                 u.created_at,
-                u.modified_at
+                u.updated_at
             FROM users u
             {$where}
             ORDER BY u.created_at DESC, u.user_id DESC
@@ -51,12 +55,14 @@ try {
 
     $data = array_map(static function ($r) {
         return [
-            'user_id'    => (int)$r['user_id'],
-            'email'      => (string)$r['email'],
-            'is_admin'   => (int)$r['is_admin'] === 1,
-            'test'       => (int)($r['test'] ?? 0) === 1,
-            'created_at' => (string)$r['created_at'],
-            'modified_at'=> $r['modified_at'] ?? null,
+            'user_id'     => (int)$r['user_id'],
+            'email'       => (string)$r['email'],
+            'first_name'  => $r['first_name'] !== null ? (string)$r['first_name'] : null,
+            'last_name'   => $r['last_name']  !== null ? (string)$r['last_name']  : null,
+            'is_admin'    => (int)$r['is_admin'] === 1,
+            'test'        => (int)($r['test'] ?? 0) === 1,
+            'created_at'  => (string)$r['created_at'],
+            'updated_at'  => (string)$r['updated_at'],
         ];
     }, $rows);
 

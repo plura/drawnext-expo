@@ -1,11 +1,11 @@
-// src/features/submit/lib/useObjectUrl.js
+// src/features/submit/lib/useObjectURL.js
 import { useEffect, useState } from "react"
 
 /**
  * React hook: returns an object URL for a given File/Blob
  * and revokes it automatically on cleanup.
  */
-export function useObjectUrl(file) {
+export function useObjectURL(file) {
 	const [url, setUrl] = useState("")
 
 	useEffect(() => {

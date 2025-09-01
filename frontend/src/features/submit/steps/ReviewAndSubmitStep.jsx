@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import Card from "@/components/cards/Card";
 import DrawingImage from "@/components/drawings/DrawingImage";
-import { useObjectUrl } from "../lib/useObjectUrl";
+import { useObjectURL } from "../lib/useObjectURL";
 
 export const stepTitle = "Review";
 
@@ -32,7 +32,7 @@ export default function ReviewAndSubmitStep({ state, notebooks }) {
 			});
 	}, [state.neighbors, notebook]);
 
-	const previewUrl = useObjectUrl(state.file);
+	const previewUrl = useObjectURL(state.file);
 
 	return (
 		<div className="space-y-4">
