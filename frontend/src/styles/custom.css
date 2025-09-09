@@ -1,0 +1,14 @@
+@theme {
+  /* HSL triplet (no hsl() wrapper), so opacity works: bg-brand/90, etc. */
+  --color-brand: oklch(0.9497 0.0168 88)
+}
+
+
+
+
+@layer base {
+  :root {
+    --dn-header-height: 4rem;
+    --dn-global-gap: 0.25rem;
+  }
+}

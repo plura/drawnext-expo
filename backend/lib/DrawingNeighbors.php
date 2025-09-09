@@ -154,6 +154,76 @@ class DrawingNeighbors
 	}
 
 
+
+	/**
+	 * Filter a raw neighbor list into a set that is safe to persist without throwing.
+	 *
+	 * Rules:
+	 * - Cap to maxAllowed(notebookId)
+	 * - Skip neighbors in the primary section
+	 * - Validate section/page shapes (non-throwing)
+	 * - Require that the neighbor slot already exists
+	 * - De-duplicate [section_id,page] pairs
+	 *
+	 * @param array<int,array{section_id?:mixed,page?:mixed}> $neighbors
+	 * @return array<int,array{section_id:int,page:int}>
+	 */
+	public static function filterSaveable(Database $db, int $notebookId, int $primarySectionId, array $neighbors): array
+	{
+		$max   = self::maxAllowed($db, $notebookId); // e.g., section_count - 1
+		$out   = [];
+		$seen  = [];
+
+		foreach ($neighbors as $n) {
+			$nSection = isset($n['section_id']) ? (int)$n['section_id'] : 0;
+			$nPage    = isset($n['page'])       ? (int)$n['page']       : 0;
+
+			// Skip empty/malformed rows
+			if ($nSection <= 0 || $nPage <= 0) {
+				continue;
+			}
+
+			// Cannot neighbor the primary section
+			if ($nSection === $primarySectionId) {
+				continue;
+			}
+
+			// Shape checks (non-throwing)
+			try {
+				Validation::section($nSection, $notebookId, $db);
+				Validation::page($nPage, $notebookId, $db);
+			} catch (InvalidArgumentException $e) {
+				continue;
+			}
+
+			// Slot must already have a drawing
+			if (!self::exists($db, $notebookId, $nSection, $nPage)) { // defers to Drawing::isSlotTaken
+				continue;
+			}
+
+			// De-dupe
+			$key = $nSection . ':' . $nPage;
+			if (isset($seen[$key])) {
+				continue;
+			}
+			$seen[$key] = true;
+
+			$out[] = ['section_id' => $nSection, 'page' => $nPage];
+
+			// Respect cap
+			if (count($out) >= $max) {
+				break;
+			}
+		}
+
+		return $out;
+	}
+
+
+
+
+
+
 	/* ---------------------------------------------------------------------
      | Persistence
      |---------------------------------------------------------------------*/

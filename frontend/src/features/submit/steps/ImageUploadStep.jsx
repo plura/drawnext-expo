@@ -1,71 +1,71 @@
 // src/features/submit/steps/ImageUploadStep.jsx
-import React, { useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import { Camera as CameraIcon } from "lucide-react";
 import Card from "@/components/cards/Card";
 import { Button } from "@/components/ui/button";
 import DrawingImage from "@/components/drawings/DrawingImage";
-import { useObjectURL } from "../lib/useObjectURL";
-import { uploadTempImage } from "../lib/api";
+import { useObjectURL } from "@/features/submit/lib/useObjectURL";
+import { uploadTempImage } from "@/features/submit/lib/api";
+import CameraSheet from "@/features/submit/components/CameraSheet";
+import {
+  bitmapFromFile,
+  cropImageBitmapToRatio,
+} from "@/features/submit/lib/cropToRatio";
 
 export const stepTitle = "Upload image";
 export const stepDescription =
-  "Take a photo of your drawing or choose one from your gallery.";
+  "Take a photo. We'll auto-crop to a square (1:1) to match the drawing area."; // updated copy
 
 export function validateImage(state) {
   return !!state.file;
 }
 
-export default function ImageUploadStep({ state, patch, notebooks }) {
-  const cameraInputRef = useRef(null);
-  const galleryInputRef = useRef(null);
+const TARGET_RATIO = 1; // enforce 1:1 output
+const LONG_EDGE = 2048; // clamp size for upload/derivatives
 
-  const previewUrl = useObjectURL(state.file);
+export default function ImageUploadStep({ state, patch, notebooks }) {
+  // const cameraInputRef = useRef(null);
+  // const galleryInputRef = useRef(null);
+
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Current notebook (to pick up aspect ratio); fallback handled inside DrawingImage
-  const nb =
-    notebooks?.find((n) => Number(n.id) === Number(state.notebookId)) || null;
+  const previewUrl = useObjectURL(state.file);
+
+  const nb = useMemo(
+    () =>
+      notebooks?.find((n) => Number(n.id) === Number(state.notebookId)) || null,
+    [notebooks, state.notebookId]
+  );
   const aspect = nb?.aspect || { w: 1, h: 1 };
   const aspectLabel = `${aspect.w}:${aspect.h}`;
 
-  function openCamera(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    cameraInputRef.current?.click();
-  }
+  // function openCamera(e) {
+  //   e?.preventDefault?.();
+  //   cameraInputRef.current?.click();
+  // }
+  // function openGallery(e) {
+  //   e?.preventDefault?.();
+  //   galleryInputRef.current?.click();
+  // }
 
-  function openGallery(e) {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    galleryInputRef.current?.click();
-  }
-
-  async function onFileChange(e) {
-    const file = e.target.files?.[0];
-    // Clear the input so selecting the same file again re-fires change
-    e.target.value = "";
-    if (!file) return;
-
-    // Local preview immediately
-    patch({ file });
+  async function handleProcessedFile(file) {
+    patch({ file, uploadToken: null, imageMeta: null });
     setError(null);
-
-    // Two-phase temp upload (non-blocking)
     setUploading(true);
     try {
-      const json = await uploadTempImage(file); // POST /api/images/temp
-      const { token, width, height, hash } = json.data || {};
+      const json = await uploadTempImage(file);
+      const { token, width, height, hash } = json?.data || {};
       if (token) {
-        patch({ uploadToken: token, imageMeta: { width, height, hash } });
-      } else {
-        patch({ uploadToken: null, imageMeta: null });
+        patch({
+          uploadToken: token,
+          imageMeta: { width, height, hash, ratio: TARGET_RATIO },
+        });
       }
     } catch (err) {
-      patch({ uploadToken: null, imageMeta: null });
+      patch({ uploadToken: null });
       setError(
         err?.message || "Could not prepare the image. You can still submit."
       );
@@ -74,15 +74,41 @@ export default function ImageUploadStep({ state, patch, notebooks }) {
     }
   }
 
+  async function processToSquare(file) {
+    setProcessing(true);
+    try {
+      const bmp = await bitmapFromFile(file);
+      const cropped = await cropImageBitmapToRatio(
+        bmp,
+        TARGET_RATIO,
+        LONG_EDGE,
+        "image/jpeg",
+        0.9
+      );
+      await handleProcessedFile(cropped);
+    } catch {
+      await handleProcessedFile(file);
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  // async function onFileChange(e) {
+  //   const file = e.target.files?.[0];
+  //   e.target.value = "";
+  //   if (!file) return;
+  //   await processToSquare(file);
+  // }
+
   return (
     <Card className="space-y-3">
-      {/* Hidden inputs */}
+      {/* Hidden inputs (disabled) */}
+      {/*
       <input
         ref={cameraInputRef}
         id="file-camera"
         type="file"
         accept="image/*"
-        /* capture="environment" */ // bias to rear camera on mobile
         className="hidden"
         onChange={onFileChange}
       />
@@ -90,18 +116,21 @@ export default function ImageUploadStep({ state, patch, notebooks }) {
         ref={galleryInputRef}
         id="file-gallery"
         type="file"
-        accept="image/*" // no capture => opens photo library/gallery
+        accept="image/*"
         className="hidden"
         onChange={onFileChange}
       />
+      */}
 
-      {/* Clickable preview/placeholder area -> opens camera */}
+      {/* Clickable preview area opens the guided camera sheet */}
       <div
         role="button"
         tabIndex={0}
-        onClick={openCamera}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openCamera(e)}
-        className="w-full text-left transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md overflow-hidden"
+        onClick={() => setCameraOpen(true)}
+        onKeyDown={(e) =>
+          (e.key === "Enter" || e.key === " ") && setCameraOpen(true)
+        }
+        className="w-full text-left transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md overflow-hidden mb-0"
         aria-label="Open camera to take a photo"
       >
         {previewUrl ? (
@@ -112,12 +141,15 @@ export default function ImageUploadStep({ state, patch, notebooks }) {
               notebook={nb}
             />
             <p className="px-1 text-sm text-muted-foreground">
-              {uploading ? "Uploading…" : "Tap to retake with camera"}
+              {processing
+                ? "Processing…"
+                : uploading
+                ? "Uploading…"
+                : "Tap to retake a photo"}
             </p>
             <p className="px-1 text-[11px] text-muted-foreground">
-              Sections in the physical ring-binder notebooks are roughly{" "}
-              {aspectLabel}. Images are shown in a {aspectLabel} frame and may
-              crop at the edges—try framing your photo accordingly.
+              Sections are roughly {aspectLabel}. We auto-crop your photo to a
+              square (1:1).
             </p>
           </div>
         ) : (
@@ -126,49 +158,49 @@ export default function ImageUploadStep({ state, patch, notebooks }) {
               src={null}
               alt=""
               notebook={nb}
-              placeholder="No image yet"
+              placeholder="No image yet. Click here."
             />
             <p className="text-base font-medium">Add photo</p>
             <p className="text-sm text-muted-foreground">
-              Sections in the physical ring-binder notebooks are roughly{" "}
-              {aspectLabel}. Images are shown in a {aspectLabel} frame and may
-              crop at the edges—try framing your photo accordingly.
+              We’ll auto-crop to 1:1 to match the square drawing section.
             </p>
-            <div className="pt-2 flex gap-2">
-              <Button type="button" variant="outline" onClick={openCamera}>
-                Use Camera
-              </Button>
-              <Button type="button" variant="outline" onClick={openGallery}>
-                Choose from Gallery
-              </Button>
-            </div>
           </div>
         )}
       </div>
 
-      {/* When preview exists, also show explicit buttons below (optional) */}
-      {previewUrl && (
-        <div className="flex gap-2 px-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={openCamera}
-          >
-            Retake with camera
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={openGallery}
-          >
-            Replace from gallery
-          </Button>
-        </div>
-      )}
+      {/* Actions */}
+      <div className="flex flex-wrap gap-2 px-4 pb-4">
+        <Button
+          size="lg"
+          className="flex-1"
+          type="button"
+          onClick={() => setCameraOpen(true)}
+        >
+          <CameraIcon
+            className="mr-1 shrink-0"
+            strokeWidth={2.25}
+            aria-hidden="true"
+          />
+          Photo
+        </Button>
+
+        {/*
+        <Button className="flex-1" type="button" variant="outline" onClick={openCamera}>
+          {previewUrl ? "Retake (system)" : "Camera"}
+        </Button>
+        <Button className="flex-1" type="button" variant="outline" onClick={openGallery}>
+          Gallery
+        </Button>
+        */}
+      </div>
 
       {error && <p className="text-xs text-red-600 px-2">{error}</p>}
+
+      <CameraSheet
+        open={cameraOpen}
+        onOpenChange={setCameraOpen}
+        onReady={(file) => processToSquare(file)}
+      />
     </Card>
   );
 }

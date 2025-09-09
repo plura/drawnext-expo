@@ -1,5 +1,5 @@
 // src/features/submit/useSubmissionStore.js
-import { useReducer } from 'react';
+import { useReducer, useCallback } from 'react';
 
 export const initialState = {
   file: null,
@@ -30,8 +30,14 @@ function reducer(state, action) {
 export function useSubmissionStore() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const patch = (payload) => dispatch({ type: 'PATCH', payload });
-  const reset = () => dispatch({ type: 'RESET' });
+  const patch = useCallback((payload) => {
+    dispatch({ type: "PATCH", payload });
+  }, []);
+
+  const reset = useCallback(() => {
+    dispatch({ type: "RESET" });
+  }, []);
 
   return { state, patch, reset, dispatch };
 }
+

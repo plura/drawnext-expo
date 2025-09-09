@@ -1,43 +1,51 @@
+// vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import svgr from 'vite-plugin-svgr' // 👈 add this
 import path from 'path'
+import fs from 'fs'
 
-// https://vitejs.dev/config/
+const LAN_IP = process.env.LAN_IP || '192.168.68.104'
+const HTTPS_KEY_PATH = './.cert/dev-key.pem'
+const HTTPS_CERT_PATH = './.cert/dev-cert.pem'
+
 export default defineConfig({
-	plugins: [react(), tailwindcss()],
+	plugins: [
+		react(),
+		tailwindcss(),
+		svgr({ svgo: false }), // 👈 and register it
+	],
 	build: {
-		// Put the build output into the PHP's public folder
-		outDir: '../public',
-		emptyOutDir: true
+		outDir: 'dist',       // Build goes to 'dist/'
+		assetsDir: 'assets',  // CSS/JS hashed files live under dist/assets/
+		emptyOutDir: true,    // Clear 'dist/' on build
+		copyPublicDir: true,  // Copies everything from 'public/' into 'dist/'
+		/* outDir: '../public',
+		emptyOutDir: true, */
 	},
 	server: {
-		port: 5173, // dev server port
-		open: true, // auto-open browser
+		port: 5173,
+		open: true,
 		host: true,
-		// Optional, helps HMR from phone:
-		hmr: { host: '192.168.68.101', port: 5173 },
-
-		// Proxy all API requests during `npm run dev`
-		// Frontend calls `/api/...` -> Vite rewrites to `/backend/api/... .php` on DDEV
+		https: {
+			key: fs.readFileSync(HTTPS_KEY_PATH),
+			cert: fs.readFileSync(HTTPS_CERT_PATH),
+		},
+		hmr: {
+			host: LAN_IP,
+			port: 5173,
+			protocol: 'wss',
+		},
 		proxy: {
 			'/api': {
-				target: 'https://drawnext.ddev.site', // your local DDEV URL
+				target: 'https://drawnext.ddev.site',
 				changeOrigin: true,
-				secure: false, // allow self-signed certs on DDEV
+				secure: false,
 				rewrite: (path) => {
-					// 1) Split the incoming URL into path and query parts
 					const [pathOnly, query = ''] = path.split('?')
-
-					// 2) Replace the /api prefix with your backend folder
 					const withoutApi = pathOnly.replace(/^\/api/, '/backend/api')
-
-					// 3) Ensure the *path* ends with .php (but don't touch the query)
-					const rewritten = withoutApi.endsWith('.php')
-						? withoutApi
-						: `${withoutApi}.php`
-
-					// 4) Re-attach the query string only if one exists
+					const rewritten = withoutApi.endsWith('.php') ? withoutApi : `${withoutApi}.php`
 					return query ? `${rewritten}?${query}` : rewritten
 				},
 			},
@@ -49,8 +57,6 @@ export default defineConfig({
 		},
 	},
 	resolve: {
-		alias: {
-			'@': path.resolve(__dirname, './src'),
-		},
+		alias: { '@': path.resolve(__dirname, './src') },
 	},
 })

@@ -16,12 +16,20 @@ import DrawingImage from "@/components/drawings/DrawingImage";
  * - hideNeighbors?: boolean  -> suppress neighbors section for compact grids
  * - className?: string       -> extra classes to Card wrapper
  */
-export default function DrawingInfoCard({ item, notebook, to, hideNeighbors = false, className }) {
+export default function DrawingInfoCard({
+  item,
+  notebook,
+  to,
+  hideNeighbors = false,
+  className,
+}) {
   const neighbors = Array.isArray(item?.neighbors) ? item.neighbors : [];
   const imageUrl = item?.thumb_url || item?.preview_url || null;
 
   const findSectionLabel = (id) => {
-    const fromItem = neighbors.find((n) => Number(n.section_id) === Number(id))?.section_label;
+    const fromItem = neighbors.find(
+      (n) => Number(n.section_id) === Number(id)
+    )?.section_label;
     if (fromItem) return fromItem;
     const s = notebook?.sections?.find((sec) => Number(sec.id) === Number(id));
     return s?.label ?? String(id);
@@ -35,7 +43,9 @@ export default function DrawingInfoCard({ item, notebook, to, hideNeighbors = fa
         <Badge
           className="absolute top-6 left-6"
           style={{
-            backgroundColor: notebook?.color_bg ? `#${notebook.color_bg}` : undefined,
+            backgroundColor: notebook?.color_bg
+              ? `#${notebook.color_bg}`
+              : undefined,
             color: notebook?.color_text ? `#${notebook.color_text}` : undefined,
           }}
         >
@@ -52,39 +62,42 @@ export default function DrawingInfoCard({ item, notebook, to, hideNeighbors = fa
         />
       </div>
 
-      {/* Details */}
-      <div className="grid grid-flow-col auto-cols-auto gap-4 text-xs">
-        <div className="min-w-[6rem]">
+      <div className="flex gap-6 text-xs">
+
+        {/* Details */}
+        <div className="flex gap-6">
+          {/*         <div className="min-w-[6rem]">
           <div className="text-muted-foreground">Email</div>
           <div className="font-medium break-all">{item?.user_email ?? "—"}</div>
-        </div>
-        <div className="min-w-[6rem]">
-          <div className="text-muted-foreground">Section</div>
-          <div className="font-medium">{sectionLabel}</div>
-        </div>
-        <div className="min-w-[4rem]">
-          <div className="text-muted-foreground">Page</div>
-          <div className="font-medium">{item?.page}</div>
-        </div>
-      </div>
-
-      {/* Neighbors */}
-      {!hideNeighbors && neighbors.length > 0 && (
-        <div className="mt-3 text-xs">
-          <div className="mb-1 text-muted-foreground">Neighbor drawings</div>
-          <div className="flex flex-wrap gap-2">
-            {neighbors.map((n) => (
-              <Badge key={`${n.section_id}-${n.page}`} variant="secondary">
-                <span className="font-bold">
-                  {n.section_label || findSectionLabel(n.section_id)}
-                </span>
-                <span className="mx-1" aria-hidden="true">|</span>
-                <span>p. {n.page}</span>
-              </Badge>
-            ))}
+        </div> */}
+          <div>
+            <div className="text-muted-foreground">Section</div>
+            <div className="font-medium md:mt-2">{sectionLabel}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Page</div>
+            <div className="font-medium md:mt-2">{item?.page}</div>
           </div>
         </div>
-      )}
+
+        {/* Neighbors */}
+        {!hideNeighbors && neighbors.length > 0 && (
+          <div className="text-xs">
+            <div className="mb-1 text-muted-foreground">Neighbor drawings</div>
+            <div className="flex flex-wrap gap-2">
+              {neighbors.map((n) => (
+                <Badge key={`${n.section_id}-${n.page}`} variant="outline">
+                  <span className="font-medium">
+                    {n.section_label || findSectionLabel(n.section_id)}
+                  </span>
+                  <span className="" aria-hidden="true">|</span>
+                  <span>p. {n.page}</span>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </Card>
   );
 

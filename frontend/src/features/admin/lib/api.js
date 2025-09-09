@@ -153,4 +153,14 @@ export async function getUser(id) {
   return fetchJson(`/api/admin/users/view?${qs.toString()}`);
 }
 
+/** POST /api/admin/users/update
+ *  payload: { user_id:number, email?, first_name?, last_name?, is_admin?, test? }
+ */
+export async function updateUser(payload) {
+  return fetchJson("/api/admin/users/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
 

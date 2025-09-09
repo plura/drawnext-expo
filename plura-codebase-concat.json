@@ -1,0 +1,34 @@
+{
+
+	"jobs": [
+		{
+			"source": "./backend/api",
+			"output": "./.export/chatgpt-backend-api.txt"
+		},
+		{
+			"source": "./backend/lib",
+			"output": "./.export/chatgpt-backend-lib.txt"
+		},
+		{
+			"source": "./backend/scripts",
+			"output": "./.export/chatgpt-backend-scripts.txt"
+		},
+		{
+			"source": "./frontend/src",
+			"output": "./.export/chatgpt-frontend.txt",
+			"exclude_paths": [
+				"components/ui",
+				"features/admin",
+				"features/submit"
+			]
+		},
+		{
+			"source": "./frontend/src/features/admin",
+			"output": "./.export/chatgpt-frontend-admin.txt"
+		},
+		{
+			"source": "./frontend/src/features/submit",
+			"output": "./.export/chatgpt-frontend-submit.txt"
+		}
+	]
+}

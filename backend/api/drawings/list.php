@@ -8,6 +8,8 @@
 //   labels     → include section_label (main + neighbors)
 //   meta       → include image meta on main drawing
 //   thumb      → include thumb_url (main + neighbors when a WebP thumb exists)
+// Extras:
+//   rand=1     → randomize order (server-side). When enabled, offset is ignored.
 
 declare(strict_types=1);
 
@@ -24,6 +26,9 @@ try {
     $limit  = isset($_GET['limit'])  ? max(1, min((int)$_GET['limit'], 50)) : 20;
     $offset = isset($_GET['offset']) ? max(0, (int)$_GET['offset']) : 0;
 
+    // Server-side randomize toggle
+    $rand = isset($_GET['rand']) && $_GET['rand'] !== '' && $_GET['rand'] !== '0';
+
     $filters = [];
     $params  = [];
 
@@ -38,6 +43,11 @@ try {
     if (isset($_GET['page']) && $_GET['page'] !== '') {
         $filters[] = 'd.page = ?';
         $params[]  = (int)$_GET['page'];
+    }
+
+    $hasNeighbors = isset($_GET['has_neighbors']) && $_GET['has_neighbors'] !== '' && $_GET['has_neighbors'] !== '0';
+    if ($hasNeighbors) {
+        $filters[] = 'EXISTS (SELECT 1 FROM drawing_neighbors dn WHERE dn.drawing_id = d.drawing_id)';
     }
 
     $where = $filters ? ('WHERE ' . implode(' AND ', $filters)) : '';
@@ -88,12 +98,22 @@ try {
     $selectList = implode(',', $select);
     $joinSql    = $joins ? implode("\n", $joins) : '';
 
+    // Decide ordering
+    // NOTE: OFFSET with RAND() has little meaning; we ignore offset when $rand is true.
+    $orderSql = $rand
+        ? 'ORDER BY RAND()'
+        : 'ORDER BY d.created_at DESC, d.drawing_id DESC';
+
+    if ($rand) {
+        $offset = 0;
+    }
+
     // NOTE: MySQL can't bind LIMIT/OFFSET with emulation off; ints are validated above and interpolated safely.
     $sql = "SELECT {$selectList}
 FROM drawings d
 {$joinSql}
 {$where}
-ORDER BY d.created_at DESC, d.drawing_id DESC
+{$orderSql}
 LIMIT {$limit} OFFSET {$offset}";
 
     $rows = $db->query($sql, $params);
@@ -118,6 +138,7 @@ LIMIT {$limit} OFFSET {$offset}";
             'section_position' => isset($r['section_position']) ? (int)$r['section_position'] : null,
             'page'             => (int)$r['page'],
             'created_at'       => $r['created_at'],
+            // preview_url points to stored file path as-is (e.g., *__display.webp)
             'preview_url'      => !empty($r['stored_filename']) ? $prefix . rawurlencode($r['stored_filename']) : null,
         ];
 
@@ -150,25 +171,21 @@ LIMIT {$limit} OFFSET {$offset}";
         $mainNotebookById[$did] = $nid;
     }
 
-    // Neighbors expansion (single query, brings section_position + preview/thumb + optional user)
+    // Neighbors expansion
     if ($wantNeighbors && $ids) {
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
-        // Build conditional pieces for neighbor extras
         $selectNei = [
             'dn.drawing_id',
             'dn.neighbor_section_id AS section_id',
             'dn.neighbor_page AS page',
             's.position AS section_position',
-            // neighbor file (for preview/thumb)
             'nf.stored_filename AS neighbor_stored_filename',
             'nd.drawing_id AS neighbor_drawing_id',
         ];
         $joinsNei = [
-            // join main drawing to get notebook_id → resolve neighbor drawing row
             'INNER JOIN drawings d_main ON d_main.drawing_id = dn.drawing_id',
             'INNER JOIN sections s ON s.section_id = dn.neighbor_section_id',
-            // find the actual neighbor drawing row in same notebook/slot
             'LEFT JOIN drawings nd
                  ON nd.notebook_id = d_main.notebook_id
                 AND nd.section_id  = dn.neighbor_section_id
@@ -200,7 +217,6 @@ LIMIT {$limit} OFFSET {$offset}";
                 'section_id'       => (int)$n['section_id'],
                 'section_position' => isset($n['section_position']) ? (int)$n['section_position'] : null,
                 'page'             => (int)$n['page'],
-                // preview_url for neighbor (always when file exists)
                 'preview_url'      => !empty($n['neighbor_stored_filename'])
                     ? $prefix . rawurlencode($n['neighbor_stored_filename'])
                     : null,
@@ -235,6 +251,7 @@ LIMIT {$limit} OFFSET {$offset}";
         'count'       => count($rows),
         'next_offset' => $offset + $limit,
         'has_more'    => $hasMore,
+        'random'      => $rand ? 1 : 0,
     ];
 
     ApiResponse::success($data, $meta);

@@ -15,9 +15,9 @@ export default function NavItem({
 			end={end}
 			className={({ isActive }) =>
 				cn(
-					"rounded-md px-3 py-1.5 hover:bg-gray-100",
+					"rounded-md px-3 py-1.5 hover:bg-brand bg-brand/75",
 					className,
-					isActive && cn("bg-gray-200 font-medium", activeClassName)
+					isActive && cn("bg-brand font-medium", activeClassName)
 				)
 			}
 		>

@@ -43,4 +43,5 @@
 Thumbs.db
 
 /uploads/
-/.trash/
+/.trash
+.export

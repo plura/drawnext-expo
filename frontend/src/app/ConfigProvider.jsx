@@ -29,7 +29,7 @@ export function ConfigProvider({ children }) {
 				const res = await fetch("/api/notebooks/config")
 				const json = await res.json()
 				const data = Array.isArray(json?.data) ? json.data : json
-console.log(data);
+
 				setNotebooks(data)
 
 				// save cache if allowed

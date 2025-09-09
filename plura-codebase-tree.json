@@ -1,0 +1,18 @@
+{
+  "jobs": [
+    {
+      "source": ".",
+      "output": "./.export/drawnext-tree.txt",
+      "exclude_paths": [
+        "public",
+        "uploads",
+        "tests",
+        ".trash",
+        ".export",
+        "structure-files-concat-tree.php",
+        "structure-files-concat.json",
+        "structure-files-tree.json"
+      ]
+    }
+  ]
+}

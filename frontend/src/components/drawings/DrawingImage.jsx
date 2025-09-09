@@ -17,7 +17,7 @@ export default function DrawingImage({
 		<div
 			style={style}
 			className={cn(
-				"w-full overflow-hidden",
+				"h-full overflow-hidden",
 				rounded && "rounded-md",
 				className
 			)}

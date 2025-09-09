@@ -3,11 +3,12 @@
  * Admin → DrawingEdit (two-column layout)
  * - Left column: image (DrawingImage) + meta + Notebook Select
  * - Right column: Sections stack (SectionGroup for each section)
- * - Action row (Cancel / Validate / Save) below the layout
+ * - Action row (Cancel / Validate / Save / Delete) below the layout
  *
  * Behavior:
  * - Validate → calls /api/drawings/validate and shows result inline (no redirect)
  * - Save → calls /api/admin/drawings/update and shows result inline (no redirect)
+ * - Delete → confirms via AlertDialog and calls /api/admin/drawings/delete, then navigates back
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -19,7 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import Select from "@/components/form/Select";
 import Sections from "@/components/form/Sections";
 import DrawingImage from "@/components/drawings/DrawingImage";
-import { validateSlots, updateDrawing } from "@/features/admin/lib/api";
+import ConfirmDialog from "@/components/feedback/AlertDialog";
+import {
+  validateSlots,
+  updateDrawing,
+  deleteDrawing,
+} from "@/features/admin/lib/api";
 
 export default function DrawingEdit() {
   const { id } = useParams();
@@ -43,6 +49,7 @@ export default function DrawingEdit() {
   const [validating, setValidating] = useState(false);
   const [validateError, setValidateError] = useState(null);
   const [validateInfo, setValidateInfo] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
 
   // Load “just enough” data by scanning /drawings/list
   useEffect(() => {
@@ -90,9 +97,7 @@ export default function DrawingEdit() {
   const sections = useMemo(() => {
     if (!notebook) return [];
     const list = notebook.sections || [];
-    return [...list].sort(
-      (a, b) => Number(a.position) - Number(b.position)
-    );
+    return [...list].sort((a, b) => Number(a.position) - Number(b.position));
   }, [notebook]);
 
   const maxPages = notebook?.pages ?? null;
@@ -284,26 +289,32 @@ export default function DrawingEdit() {
             </p>
           ) : (
             <Sections
-              sections={sections} 
-              notebookId={Number(notebook.id)} 
+              sections={sections}
+              notebookId={Number(notebook.id)}
               primarySectionId={primarySectionId}
               page={page}
               neighborPages={neighborPages}
               maxPages={maxPages}
               onSelectPrimary={handleSelectPrimary}
               onChangePrimaryPage={handleChangePrimaryPage}
-              onChangeNeighborPage={handleChangeNeighborPage} 
-              excludeDrawingId={Number(id)} 
+              onChangeNeighborPage={handleChangeNeighborPage}
+              excludeDrawingId={Number(id)}
             />
           )}
         </Card>
       </div>
 
       {/* Action row below layout */}
-      <div className="flex flex-wrap gap-2 pt-2">
-        <Button variant="outline" type="button" onClick={handleCancel} disabled={saving || validating}>
+      <div className="flex flex-wrap items-center gap-2 pt-2">
+        <Button
+          variant="outline"
+          type="button"
+          onClick={handleCancel}
+          disabled={saving || validating}
+        >
           Cancel
         </Button>
+
         <Button
           variant="outline"
           type="button"
@@ -312,6 +323,7 @@ export default function DrawingEdit() {
         >
           {validating ? "Validating…" : "Validate"}
         </Button>
+
         <Button
           type="button"
           onClick={handleSave}
@@ -319,15 +331,46 @@ export default function DrawingEdit() {
         >
           {saving ? "Saving…" : "Save changes"}
         </Button>
+
+        {/* Right-aligned delete */}
+        <ConfirmDialog
+          title="Delete this drawing?"
+          description="This action cannot be undone. The drawing and its files will be permanently removed."
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
+          actionClassName="bg-red-600 hover:bg-red-700"
+          trigger={
+            <Button variant="destructive" type="button" className="ml-auto">
+              Delete
+            </Button>
+          }
+          onConfirm={async () => {
+            setDeleteError(null);
+            try {
+              await deleteDrawing(Number(id));
+              navigate("/admin/drawings");
+            } catch (e) {
+              setDeleteError(e?.message || "Delete failed");
+            }
+          }}
+        />
       </div>
 
       {/* Inline messages */}
       {saveOk && <div className="text-sm text-green-600 pt-2">{saveOk}</div>}
-      {saveError && <div className="text-sm text-red-600 pt-2">{saveError}</div>}
-      {validateError && <div className="text-sm text-red-600 pt-2">{validateError}</div>}
+      {saveError && (
+        <div className="text-sm text-red-600 pt-2">{saveError}</div>
+      )}
+      {deleteError && (
+        <div className="text-sm text-red-600 pt-2">{deleteError}</div>
+      )}
+      {validateError && (
+        <div className="text-sm text-red-600 pt-2">{validateError}</div>
+      )}
       {validateInfo && (
         <pre className="text-[11px] text-muted-foreground bg-white/70 border rounded p-2 mt-2 overflow-auto">
-{JSON.stringify(validateInfo, null, 2)}
+          {JSON.stringify(validateInfo, null, 2)}
         </pre>
       )}
     </div>

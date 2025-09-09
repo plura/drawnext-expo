@@ -5,8 +5,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../bootstrap.php';
 
 use Lib\ApiResponse;
-use Lib\Validation;
+use Lib\Config;
 use Lib\Drawing;
+use Lib\Validation;
+
 
 try {
     $deps = dependencies();
@@ -51,12 +53,14 @@ try {
     ApiResponse::success([
         'primary'   => $primary,
         'neighbors' => [
+            'policy'    => Config::get('submissions.neighbors.policy'), // 'strict' | 'permissive' | 'ignore'
             'valid'     => $analysis['valid'],
             'warnings'  => $analysis['warnings'],
             // Optional: expose accepted list if useful to the UI
             'accepted'  => $analysis['accepted'],
         ],
     ]);
+
 
 } catch (\InvalidArgumentException $e) {
     ApiResponse::validationError(['error' => $e->getMessage()]);

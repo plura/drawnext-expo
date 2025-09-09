@@ -46,6 +46,7 @@ $routes = [
     'admin/drawings/delete'  => __DIR__ . '/admin/drawings/delete.php',
     'admin/drawings/update'  => __DIR__ . '/admin/drawings/update.php',
     'admin/drawings/view'    => __DIR__ . '/admin/drawings/view.php',
+	'drawings/related'       => __DIR__ . '/drawings/related.php',
 
     'admin/users/list'       => __DIR__ . '/admin/users/list.php',
     'admin/users/view'       => __DIR__ . '/admin/users/view.php',
