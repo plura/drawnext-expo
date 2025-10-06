@@ -60,14 +60,12 @@ if ($seg1 === 'drawings') {
         require __DIR__ . '/drawings/list.php';
         exit;
     }
-    // /api/drawings/{id} (numeric) -> view?id={id}
+
+    // /api/drawings/{id} (numeric) -> list.php?id={id}
     if (ctype_digit($seg2)) {
-        $viewPath = __DIR__ . '/drawings/view.php';
-        if (is_file($viewPath)) {
-            $_GET['id'] = (int)$seg2;
-            require $viewPath;
-            exit;
-        }
+        $_GET['id'] = (int)$seg2;
+        require __DIR__ . '/drawings/list.php';
+        exit;
     }
 }
 

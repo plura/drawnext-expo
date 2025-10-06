@@ -11,19 +11,18 @@ export default function DrawingImage({
 	placeholder = "No preview",
 }) {
 	const a = aspect || notebook?.aspect || { w: 1, h: 1 };
-	const style = { aspectRatio: `${a.w} / ${a.h}` };
 
 	return (
 		<div
-			style={style}
 			className={cn(
-				"h-full overflow-hidden",
+				"drawing-image h-full min-w-0 overflow-hidden min-w-0",
+				`aspect-[${a.w}/${a.h}]`,
 				rounded && "rounded-md",
 				className
 			)}
 		>
 			{src ? (
-				<img src={src} alt={alt} className="h-full w-full object-cover" />
+				<img src={src} alt={alt} className="h-full block object-cover" />
 			) : (
 				<div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs text-gray-500">
 					{placeholder}

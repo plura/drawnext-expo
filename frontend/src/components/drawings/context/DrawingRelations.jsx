@@ -1,4 +1,4 @@
-// src/components/drawings/relations/RelatedByNeighbors.jsx
+// src/components/drawings/relations/DrawingRelations.jsx
 /**
  * RelatedByNeighbors
  * ------------------
@@ -18,7 +18,7 @@ import { useConfig } from "@/app/ConfigProvider";
 import GalleryMain from "@/components/gallery/GalleryMain";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-export default function RelatedByNeighbors({ loading = false, items = [] }) {
+export default function DrawingRelations({ loading = false, items = [] }) {
   const { notebooks } = useConfig();
 
   const notebooksById = useMemo(() => {
@@ -32,7 +32,7 @@ export default function RelatedByNeighbors({ loading = false, items = [] }) {
   if (!hasItems) {
     return (
       <div className="p-4 space-y-3">
-        <h2 className="text-base font-semibold">Related drawings</h2>
+        <h2 className="drawing-relations text-base font-semibold">Related drawings</h2>
         <Alert>
           <AlertTitle>No related drawings</AlertTitle>
           <AlertDescription>

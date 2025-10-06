@@ -1,4 +1,4 @@
-// src/components/drawings/relations/DrawingRelations.jsx
+// src/components/drawings/relations/DrawingContext.jsx
 /**
  * DrawingRelations
  * ----------------
@@ -16,14 +16,13 @@
  * - No per-neighbor fetching here; SectionsMap uses `data.neighbors` directly.
  * - Neutral Tailwind/shadcn styling only.
  */
-import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
 import { useConfig } from "@/app/ConfigProvider";
-import SectionsMap from "./SectionsMap";
-import RelatedByNeighbors from "./RelatedByNeighbors";
 import { Skeleton } from "@/components/ui/skeleton";
+import SectionsMap from "./SectionsMap";
+import DrawingRelations from "./DrawingRelations";
 
-export default function DrawingRelations({ drawingId, className = "" }) {
+export default function DrawingContext({ drawingId, className = "" }) {
   // ---- App-wide config ----
   const { notebooks, loading: loadingCfg } = useConfig();
 
@@ -44,14 +43,14 @@ export default function DrawingRelations({ drawingId, className = "" }) {
       try {
         setLoadingDrawing(true);
         setErrorDrawing(null);
-
+        console.log(drawingId);
         const expand = "labels,user,thumb,neighbors";
         let res = await fetch(`/api/drawings/${drawingId}?expand=${expand}`);
         if (res.status === 404) {
           res = await fetch(`/api/drawings/list?id=${drawingId}&limit=1&expand=${expand}`);
         }
 
-        const json = await res.json();
+        const json = await res.json(); console.log(json);
         if (!res.ok || json?.status === "error") {
           throw new Error(json?.message || `Failed (${res.status})`);
         }
@@ -114,28 +113,26 @@ export default function DrawingRelations({ drawingId, className = "" }) {
   }, [drawingId]);
 
   return (
-    <div className={`flex flex-col flex-1 min-h-0 ${className}`}>
+    <div className={`drawing-context flex ${className}`}>
       {/* LEFT: sections in position order — drawing + linked items + placeholders */}
-      <Card className="flex flex-col flex-1 min-h-0 py-0 px-0">
-        {loadingDrawing ? (
-          <Skeleton className="h-48 w-full rounded" />
-        ) : errorDrawing ? (
-          <div className="text-sm">{errorDrawing}</div>
-        ) : !drawingData ? (
-          <div className="text-sm">Drawing not found.</div>
-        ) : (
-          <SectionsMap
-            loading={loadingCfg}
-            data={drawingData}
-            notebook={notebook} 
-			className="flex-1 min-h-0"
-          />
-        )}
-      </Card>
+		{loadingDrawing ? (
+			<Skeleton className="h-48 w-full rounded" />
+		) : errorDrawing ? (
+			<div className="text-sm">{errorDrawing}</div>
+		) : !drawingData ? (
+			<div className="text-sm">Drawing not found.</div>
+		) : (
+			<SectionsMap
+			loading={loadingCfg}
+			data={drawingData}
+			notebook={notebook} 
+			className="h-full py-0 px-0"
+			/>
+		)}
 
       {/* RIGHT: only render if there are related neighbors */}
       {Array.isArray(relatedRows) && relatedRows.length > 0 && (
-        <RelatedByNeighbors loading={loadingRelated} items={relatedRows} />
+        <DrawingRelations loading={loadingRelated} items={relatedRows} />
       )}
     </div>
   );

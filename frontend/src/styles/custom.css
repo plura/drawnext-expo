@@ -8,7 +8,7 @@
 
 @layer base {
   :root {
-    --dn-header-height: 4rem;
+    --dn-header-height: 4rem; /* 64px */
     --dn-global-gap: 0.25rem;
   }
 }

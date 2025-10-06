@@ -42,6 +42,8 @@
 .DS_Store
 Thumbs.db
 
-/uploads/
+/uploads
 /.trash
-.export
+/.export
+/tests
+/public

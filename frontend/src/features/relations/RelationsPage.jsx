@@ -19,7 +19,7 @@
  */
 
 import { useParams } from "react-router-dom";
-import DrawingRelations from "@/components/drawings/relations/DrawingRelations";
+import DrawingContext from "@/components/drawings/context/DrawingContext";
 
 export default function RelationsPage() {
   const { id } = useParams();
@@ -28,11 +28,11 @@ export default function RelationsPage() {
   const isValid = Number.isFinite(drawingId) && drawingId > 0;
 
   return (
-    <div className="mx-auto flex flex-1 h-full">
+    <div className="mx-auto flex h-full">
       {!isValid ? (
         <div className="text-sm">Invalid or missing drawing id.</div>
       ) : (
-        <DrawingRelations drawingId={drawingId} />
+        <DrawingContext drawingId={drawingId} />
       )}
     </div>
   );

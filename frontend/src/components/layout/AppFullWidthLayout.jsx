@@ -7,7 +7,7 @@ export default function AppFullWidthLayout() {
     <div className="min-h-screen bg-brand flex flex-col">
       <Header />
       {/* edge-to-edge content */}
-      <main className="w-full flex-1 min-h-0 flex flex-col">
+      <main className="flex flex-col w-full h-[calc(100dvh-var(--dn-header-height))]">
         <Outlet />
       </main>
     </div>

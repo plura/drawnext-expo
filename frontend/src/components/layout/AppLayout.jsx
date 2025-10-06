@@ -7,7 +7,7 @@ export default function AppLayout() {
     <div className="min-h-screen bg-brand flex flex-col">
       <Header />
       {/* centered content width */}
-      <main className="mx-auto w-full p-4 flex-1 min-h-0 flex flex-col max-w-md md:max-w-lg lg:max-w-xl">
+      <main className="flex flex-col w-full max-w-md md:max-w-lg lg:max-w-xl mx-auto h-[calc(100dvh-var(--dn-header-height))] p-4">
         <Outlet />
       </main>
     </div>

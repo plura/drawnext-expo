@@ -68,10 +68,10 @@ export default function SectionsMap({ loading, data, notebook, className = "" })
   }
 
   return (
-    <div className={`flex flex-col ${className}`}>
+    <Card className={`sections-map flex flex-col ${className}`}>
       {entries.map((entry) => (
-        <SectionsMapItem key={entry.section_id} data={entry} className="flex-1 min-h-0" />
+        <SectionsMapItem key={entry.section_id} data={entry} className={`flex h-[calc(100%/${entries.length})] p-1`} />
       ))}
-    </div>
+    </Card>
   );
 }
